@@ -1,0 +1,36 @@
+\documentclass[12 pt]{article}
+
+% Fonts/Symbols/Colors
+\usepackage{fullpage}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage[utf8x]{inputenc}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+% Question counter
+\newcounter{qnum}
+
+% Question Formatting
+\newcommand{\new}[1]{\bigskip \noindent \color{blue} \textbf{#1}\medskip}
+\newcommand{\response}[1]{\color{black} #1 \medskip}
+\newcommand{\q}[1]{\response{\emph{#1}}}
+\newcommand{\Q}[1]{\stepcounter{qnum}\new{Goal {\arabic{qnum}}:} \q{#1}}
+
+% INSERT WEEK NUMBER HERE
+\newcommand{\setnum}{1}
+
+\begin{document}
+
+% Title Section
+\begin{center}
+    \Large \color{blue} CS134: Robotics Systems\color{black}
+    \begin{center}\normalsize Team GLaDOS Weekly Report \setnum{}\end{center}
+    \noindent{\color{black} \rule{\linewidth}{0.5mm} }
+\end{center}
+
+% Body
+\end{document}

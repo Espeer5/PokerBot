@@ -1,0 +1,68 @@
+\documentclass[12 pt]{article}
+
+% Fonts/Symbols/Colors
+\usepackage{fullpage}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage[utf8x]{inputenc}
+\usepackage{helvet}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={Overleaf Example},
+    pdfpagemode=FullScreen,
+    }
+\renewcommand{\familydefault}{\sfdefault}
+
+% Question counter
+\newcounter{qnum}
+
+% Question Formatting
+\newcommand{\new}[1]{\bigskip \noindent \color{blue} \textbf{#1}\medskip}
+\newcommand{\response}[1]{\color{black} #1 \medskip}
+\newcommand{\q}[1]{\response{\emph{#1}}}
+\newcommand{\Q}[1]{\stepcounter{qnum}\new{Goal {\arabic{qnum}}:} \q{#1}}
+
+% INSERT WEEK NUMBER HERE
+\newcommand{\setnum}{1}
+
+\begin{document}
+
+% Title Section
+\begin{center}
+    \Large \color{blue} CS134: Robotics Systems\color{black}
+    \begin{center}\normalsize Team GLaDOS Weekly Report \setnum{}\end{center}
+    \noindent{\color{black} \rule{\linewidth}{0.5mm} }
+\end{center}
+
+% Body
+\noindent
+\textbf{Progress}:
+\begin{enumerate}
+    \item The robot hardware was tested using the provided \emph{demo134} code and 
+    all worked.
+    \item The robot was fully assembled and is now functional.
+    \item Each team member set up ssh and remote desktop on their respective machines.
+    \item A team Github repository was created and setup with all team members able 
+    to work on code together.
+    \item Code was written to allow the robot to move to a defined starting position 
+    from any initial position via a spline, and then execute a periodic waving motion 
+    after reaching the start.
+\end{enumerate}
+\textbf{Issues}:
+\begin{itemize}
+    \item We didn't run into any particular issues this week.
+\end{itemize}
+\textbf{Wave Code}:
+For the wave code we created a new package called wave. The full details can be
+seen in the \href{https://github.com/LeoBJenkins/GLaDOS}{repo}. Here is the code
+for the wave demo node and trajectory:
+\small
+\verbatiminput{../../wave/wave/wave.py}
+\end{document}

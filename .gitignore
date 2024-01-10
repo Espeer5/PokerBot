@@ -1,0 +1,8 @@
+*.DS_STORE*
+*__pycache
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz

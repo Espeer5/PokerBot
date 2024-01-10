@@ -23,7 +23,6 @@ class Trajectory():
 
     def __init__(self, q0):
         self.q0a = np.array(q0).reshape(3, 1)
-        # self.q0b = np.array([0, 0, 0]).reshape(3, 1)
         self.q0b = np.array([-1/2, -1/2, 1/2]).reshape(3,1)
         self.prevQ = self.q0a
 
@@ -33,7 +32,6 @@ class Trajectory():
         else:
             t_offs = t - 5
             qdot = np.array([np.sin(t_offs)/2, np.sin(t_offs)/2, -np.sin(t_offs)/2]).reshape(3,1)
-            # q = np.array([np.sin(t_offs)/2, np.sin(t_offs)/2, -np.sin(t_offs)/2]).reshape(3,1)
             q = self.prevQ + qdot * dt
 
         self.prevQ = q
