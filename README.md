@@ -1,2 +1,2 @@
 # GLaDOS
-Me 134 with Eddie, Josh, and Leo
+Me 134 with Eddie, Josh, Leo, and Joy
