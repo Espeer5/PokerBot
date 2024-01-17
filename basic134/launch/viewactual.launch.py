@@ -72,7 +72,7 @@ def generate_launch_description():
         executable = 'hebinode',
         output     = 'screen',
         parameters = [{'family':   'robotlab'},
-                      {'motors':   ['6.3',  '6.5',      '6.4']},
+                      {'motors':   ['8.3',  '8.5',      '8.4']},
                       {'joints':   ['base', 'shoulder', 'elbow']},
                       {'lifetime': 200.0}],
         on_exit    = Shutdown())
@@ -83,7 +83,7 @@ def generate_launch_description():
         executable = 'hebinode',
         output     = 'screen',
         parameters = [{'family':   'robotlab'},
-                      {'motors':   ['6.3',  '6.5',      '6.4']},
+                      {'motors':   ['8.3',  '8.5',      '8.4']},
                       {'joints':   ['base', 'shoulder', 'elbow']}],
         on_exit    = Shutdown())
 
