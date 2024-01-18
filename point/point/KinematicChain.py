@@ -1,8 +1,6 @@
-'''KinematicChain.py
+'''KinematicChainSol.py
 
-   This is the skeleton code for Kinematic Chains (HW5 Problem 5).
-
-   PLEASE EDIT/FIX.  See "FIXME" tags!
+   This is the solution code for Kinematic Chains (HW5 Problem 5).
 
    chain = KinematicChain(node, basefame, tipframe, expectedjointnames)
 
@@ -31,7 +29,7 @@ from std_msgs.msg               import String
 from urdf_parser_py.urdf        import Robot
 
 # Grab the utilities
-from point.TransformHelpers   import *
+from hw5code.TransformHelpers   import *
 
 
 #
@@ -164,7 +162,6 @@ class KinematicChain():
         while (frame != baseframe):
             # Look for the URDF joint to the parent frame.
             joint = next((j for j in robot.joints if j.child == frame), None)
-            
             if (joint is None):
                 self.error("Unable find joint connecting to '%s'" % frame)
             if (joint.parent == frame):
@@ -202,17 +199,17 @@ class KinematicChain():
 
         # Confirm the active joint names matches the expectation
         jointnames = [s.name for s in self.steps if s.dof is not None]
-        # print(jointnames)
         if jointnames != list(expectedjointnames):
             self.error("Chain does not match the expected names: " +
                   str(expectedjointnames))
 
 
     # Compute the forward kinematics!
-    def fkin(self, q, reverse=False):
+    def fkin(self, q):
         # Check the number of joints
         if (len(q) != self.dofs):
-            self.error(f"Number of joint angles ({len(q)}) does not chain ({self.dofs})")
+            self.error("Number of joint angles (%d) does not chain (%d)",
+                       len(q), self.dofs)
 
         # Clear any data from past invocations (just to be safe).
         for s in self.steps:
@@ -223,55 +220,32 @@ class KinematicChain():
 
         # Walk the chain, one step at a time.  Record the T transform
         # w.r.t. world for each step.
-        curr_steps = self.steps
-        if reverse:
-            curr_steps = self.steps[::-1]
-            
-        for s in curr_steps:
-            #   s.Tshift     Transform w.r.t. the previous frame
-            #   s.elocal     Joint axis in the local frame
-            #   s.dof        Joint number
-            #   q[s.dof]     Joint position (angle for revolute, displacement for linear)
-            
-            # Take action based on the joint type.
+        for s in self.steps:
+            # Always apply the shift.
+            T = T @ s.Tshift
+
+            # For active joints, also apply the joint movement.
             if s.type is Joint.REVOLUTE:
                 # Revolute is a rotation:
-                R = Rote(s.elocal, q[s.dof])
-                p = p_from_T(s.Tshift)
-                s.Tshift = T_from_Rp(R, p)
+                T = T @ T_from_Rp(Rote(s.elocal, q[s.dof]), pzero())
             elif s.type is Joint.LINEAR:
                 # Linear is a translation:
-                R = Reye()
-                p = s.elocal * q[s.dof]
-                s.Tshift = T_from_Rp(R, p)
-            else:
-                # Fixed is only shifting.
-                pass
-                
-            T = T @ s.Tshift
-            if reverse:
-                T = np.linalg.inv(T)
+                T = T @ T_from_Rp(Reye(), s.elocal * q[s.dof])
+
             # Store the info (w.r.t. world frame) into the step.
             s.T = T
             s.p = p_from_T(T)
             s.R = R_from_T(T)
             s.e = R_from_T(T) @ s.elocal
 
-        # Collect the tip information w.r.t. world!
+        # Collect the tip information.
         ptip = p_from_T(T)
         Rtip = R_from_T(T)
 
         # Re-walk up the chain to fill in the Jacobians.
         Jv = np.zeros((3,self.dofs))
         Jw = np.zeros((3,self.dofs))
-
-        for s in curr_steps:
-            # print(s.dof)
-            # FIXME AGAIN.  From the above, the step now includes:
-            #   s.p     Position w.r.t. world
-            #   s.e     Joint axis w.r.t. world
-            
-            # Take action based on the joint type.
+        for s in self.steps:
             if s.type is Joint.REVOLUTE:
                 # Revolute is a rotation:
                 Jv[:,s.dof:s.dof+1] = cross(s.e, ptip - s.p)
@@ -279,7 +253,7 @@ class KinematicChain():
             elif s.type is Joint.LINEAR:
                 # Linear is a translation:
                 Jv[:,s.dof:s.dof+1] = s.e
-                Jw[:,s.dof:s.dof+1] = pzero()
+                Jw[:,s.dof:s.dof+1] = np.zeros((3,1))
 
         # Return the info
         return (ptip, Rtip, Jv, Jw)
