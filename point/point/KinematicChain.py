@@ -31,7 +31,7 @@ from std_msgs.msg               import String
 from urdf_parser_py.urdf        import Robot
 
 # Grab the utilities
-from code.TransformHelpers   import *
+from point.TransformHelpers   import *
 
 
 #
@@ -202,6 +202,7 @@ class KinematicChain():
 
         # Confirm the active joint names matches the expectation
         jointnames = [s.name for s in self.steps if s.dof is not None]
+        # print(jointnames)
         if jointnames != list(expectedjointnames):
             self.error("Chain does not match the expected names: " +
                   str(expectedjointnames))
@@ -211,8 +212,7 @@ class KinematicChain():
     def fkin(self, q, reverse=False):
         # Check the number of joints
         if (len(q) != self.dofs):
-            self.error("Number of joint angles (%d) does not chain (%d)",
-                       len(q), self.dofs)
+            self.error(f"Number of joint angles ({len(q)}) does not chain ({self.dofs})")
 
         # Clear any data from past invocations (just to be safe).
         for s in self.steps:

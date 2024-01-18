@@ -10,9 +10,13 @@ import rclpy
 from rclpy.node         import Node
 from sensor_msgs.msg    import JointState
 from point.TrajectoryUtils    import *
+from point.KinematicChain     import *
+from point.newton_raphson import newton_raphson
 
 # Constants
 RATE = 100.0 # Hz
+
+jointnames = ["base", "shoulder", "elbow"]
 
 
 class Trajectory():
@@ -21,18 +25,34 @@ class Trajectory():
     time to be sent via the ROS node to the 3DOF robot.
     """
 
-    def __init__(self, q0):
-        self.q0a = np.array(q0).reshape(3, 1)
-        self.q0b = np.array([-1/2, -1/2, 1/2]).reshape(3,1)
-        self.prevQ = self.q0a
+    def __init__(self, demo_node, q0):
+        self.chain = KinematicChain(demo_node, "world", "tip", jointnames)
+
+        self.q0 = np.array(q0).reshape(3, 1)
+        # self.q0b = np.array([-1/2, -1/2, 1/2]).reshape(3,1)
+        self.prevQ = self.q0
+        self.waitQ = np.array([np.pi/2, np.pi/6, -np.pi/6]).reshape(3, 1)
+        self.leftPos = np.array([-0.5, 0.5, 0.0]).reshape(3, 1)
+        self.rightPos = np.array([0.5, 0.5, 0.0]).reshape(3, 1)
+
+        self.leftQ = newton_raphson(self.chain, self.leftPos, self.q0)
+        self.rightQ = newton_raphson(self.chain, self.rightPos, self.q0)
 
     def evaluate(self, t, dt):
-        if t < 5:
-            q, qdot = goto(t, 5, self.q0a, self.q0b)
+        if t < 3:
+            q, qdot = goto(t, 3, self.q0, np.array(self.q0[0],self.waitQ[1],self.q0[2]).reshape(3, 1))
+        elif t < 6:
+            q,qdot = goto(t, 6, np.array(self.q0[0],self.waitQ[1],self.q0[2]).reshape(3, 1), self.waitQ)
         else:
-            t_offs = t - 5
-            qdot = np.array([np.sin(t_offs)/2, np.sin(t_offs)/2, -np.sin(t_offs)/2]).reshape(3,1)
-            q = self.prevQ + qdot * dt
+            t_offs = (t - 6) % 20
+            if t_offs < 5:
+                q, qdot = goto(t_offs, 5, self.waitQ, self.leftQ)
+            elif t_offs < 10:
+                q, qdot = goto(t_offs, 10, self.leftQ, self.waitQ)
+            elif t_offs < 15:
+                q, qdot = goto(t_offs, 15, self.waitQ, self.rightQ)
+            elif t_offs < 20:
+                q, qdot = goto(t_offs, 20, self.rightQ, self.waitQ)
 
         self.prevQ = q
 
@@ -53,7 +73,7 @@ class DemoNode(Node):
         self.get_logger().info("Initial positions: %r" % self.position0)
 
         # Create the Trajectory object
-        self.trajectory = Trajectory(self.position0)
+        self.trajectory = Trajectory(self, self.position0)
 
         # Create a message and publisher to send the joint commands.
         self.cmdmsg = JointState()
