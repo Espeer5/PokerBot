@@ -15,7 +15,7 @@
   <joint name="placement" type="fixed">
     <parent link="world"/>
     <child  link="baseplate"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>			<!-- WHERE IS THE BASE -->
+    <origin xyz="-0.33 0 0" rpy="0 0 0"/>			<!-- WHERE IS THE BASE -->
   </joint>
 
   <!-- BASE PLATE: Shift across the base plate to the base motor. --> 

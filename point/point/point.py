@@ -12,11 +12,41 @@ from sensor_msgs.msg    import JointState
 from point.TrajectoryUtils    import *
 from point.KinematicChain     import *
 from point.newton_raphson import newton_raphson
+from enum import Enum
 
 # Constants
 RATE = 100.0 # Hz
-
 jointnames = ["base", "shoulder", "elbow"]
+
+
+class States(Enum):
+    INIT = 1
+    WAIT = 2
+    GOTO = 3
+    RETURN = 4
+
+
+def ikin(t, T, start, goal, prev_q, chain, lambd, dt):
+    """
+    Iterative ikin using kinematic chain
+    """
+    pd, vd = goto(t, T, start, goal)
+    # Compute the old fkin
+    p, _, Jv, _ = chain.fkin(prev_q)
+
+    # Compute the errors
+    epd = ep(pd, p)
+
+    # Compute each q_dot
+    JT =  np.transpose(Jv)
+    gamma = 1.0
+    J_winv = JT @ np.linalg.pinv((Jv @ JT + gamma**2 * np.eye(3)))
+    qdot = J_winv @ (vd + lambd * epd)
+
+    # Integrate to get the new q
+    q = prev_q + qdot * dt
+
+    return q, qdot
 
 
 class Trajectory():
@@ -29,47 +59,60 @@ class Trajectory():
         self.chain = KinematicChain(demo_node, "world", "tip", jointnames)
 
         self.q0 = np.array(q0).reshape(3, 1)
-        # self.q0b = np.array([-1/2, -1/2, 1/2]).reshape(3,1)
         self.waitQ = np.array([np.pi/2, 0, -np.pi/2]).reshape(3, 1)
         self.p_wait, _, _, _ = self.chain.fkin(self.waitQ)
         self.lam = 20
-        self.leftPos = np.array([-0.4, 0.4, 0.1]).reshape(3, 1)
-        self.rightPos = np.array([0.4, 0.4, 0.0]).reshape(3, 1)
+        self.state = States.INIT
+        self.goals = []
+        self.curr_goal = None
+        self.start_time = 0
         self.q = self.q0
 
-        #self.leftQ = newton_raphson(self.chain, self.leftPos, self.q0)
-        #self.rightQ = newton_raphson(self.chain, self.rightPos, self.q0)
+    def add_goal(self, goal):
+        self.goals.append(goal)
 
     def evaluate(self, t, dt):
-        if t < 5:
-            q, qdot = goto(t, 5, self.q0, np.array([self.q0[0], self.waitQ[1], self.q0[2]]).reshape(3, 1))
-            self.q = q
-        elif t < 10:
-            q, qdot = goto(t - 5, 5, np.array([self.q0[0], self.waitQ[1], self.q0[2]]).reshape(3, 1), self.waitQ)
-            self.q = q
-        elif t < 15:
-            pd, vd = goto(t - 10, 5, self.p_wait, self.leftPos)
+        match self.state:
+            case States.INIT:
+                if t < 5:
+                    q, qdot = goto(t, 5, self.q0, 
+                                   np.array([self.q0[0], 
+                                             self.waitQ[1], 
+                                             self.q0[2]]).reshape(3, 1))
+                    self.q = q
+                elif t < 10:
+                    q, qdot = goto(t - 5, 5, 
+                                   np.array([self.q0[0], 
+                                             self.waitQ[1], 
+                                             self.q0[2]]).reshape(3, 1), 
+                                             self.waitQ)
+                    self.q = q
+                else:
+                    q, qdot = self.q, np.zeros((3, 1))
+                    self.state = States.WAIT
+            case States.WAIT:
+                q, qdot = self.q, np.zeros((3, 1))
+                if not len(self.goals) == 0:
+                    self.start_time = t
+                    self.curr_goal = self.goals.pop()
+                    self.state = States.GOTO
+            case States.GOTO:
+                q, qdot = ikin(t - self.start_time, 5, self.p_wait,
+                               self.curr_goal, self.q, self.chain, self.lam, dt)
+                # Store the new q
+                self.q = q
+                if t - self.start_time >= 5:
+                    self.start_time = t
+                    self.curr_goal = q
+                    self.state = States.RETURN
+            case States.RETURN:
+                q, qdot = goto(t - self.start_time, 5, self.curr_goal, self.waitQ)
+                # Store the new q
+                self.q = q
+                if t - self.start_time >= 5:
+                    self.state = States.WAIT
 
-            # Compute the old fkin
-            p, _, Jv, _ = self.chain.fkin(self.q)
-            print("p: ",p)
-            # Compute the errors
-            epd = ep(pd, p)
-
-            # Compute each q_dot
-            qdot = np.linalg.pinv(Jv) @ (vd + self.lam * epd)
-
-            # Integrate to get the new q
-            q = self.q + qdot * dt
-
-            # Store the new q
-            self.q = q
-            print("q: ",q)
-        
-        else:
-            q, qdot = self.q, np.zeros((3, 1))
-            self.q = q
-
+            
         return q.flatten().tolist(), qdot.flatten().tolist()
         
 
@@ -102,6 +145,13 @@ class DemoNode(Node):
         # Create a subscriber to continually receive joint state messages.
         self.fbksub = self.create_subscription(
             JointState, '/joint_states', self.recvfbk, 10)
+        
+        # Create a subscriber to receive point messages.
+        self.fbksub = self.create_subscription(
+            Point, '/point', self.recvpoint, 10)
+
+        # Report.
+        self.get_logger().info("Running point command receiver")
 
         # Create a timer to keep calculating/sending commands.
         rate       = RATE
@@ -110,6 +160,20 @@ class DemoNode(Node):
         self.t         = - self.dt
         self.get_logger().info("Sending commands with dt of %f seconds (%fHz)" %
                                (self.timer.timer_period_ns * 1e-9, rate))
+
+    
+    # Receive a point message - called by incoming messages.
+    def recvpoint(self, pointmsg):
+        # Extract the data.
+        x = pointmsg.x
+        y = pointmsg.y
+        z = pointmsg.z
+
+        self.trajectory.add_goal(np.array([x, y, z]).reshape(3, 1))
+        
+        # Report.
+        self.get_logger().info("Running point %r, %r, %r" % (x,y,z))
+    
 
     # Shutdown
     def shutdown(self):
