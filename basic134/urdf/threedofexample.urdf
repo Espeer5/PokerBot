@@ -97,13 +97,13 @@
   <joint name="upperarm" type="fixed">
     <parent link="upperarm"/>
     <child  link="elbowmotor"/>
-    <origin xyz="0.4085 0 0.0057" rpy="0 0 0"/>		  <!-- UPPER ARM DIMENIONS -->
+    <origin xyz="0.4085 0 0.0057" rpy="3.14159 0 0"/>		  <!-- UPPER ARM DIMENIONS -->
   </joint>
 
   <!-- Elbow motor.  Thickness: X5 = 31.1mm, X8 = 45.1mm -->
   <link name="elbowmotor">
       <visual>
-	<origin xyz="0 0 -0.0057" rpy = "3.1415 0 0"/>
+	<origin xyz="0 0 0.0057" rpy = "0 0 0"/>
       <geometry>
         <mesh filename="package://basic134/meshes/X5.stl"
 	      scale="0.001 0.001 0.001"/>
@@ -115,14 +115,14 @@
   <joint name="elbow" type="continuous">
     <parent link="elbowmotor"/>
     <child  link="lowerarm"/>
-    <origin xyz="0 0 -0.0311" rpy="3.1415 0 0"/>
+    <origin xyz="0 0 0.035" rpy="0 0 3.14159"/>
     <axis   xyz="0 0 1"/>
   </joint>
 
   <!-- Shift across the upper arm (1/4in thickness) -->
   <link name="lowerarm">
     <visual>
-      <origin xyz="0.163 0 -0.00902" rpy="0 0 0"/>
+      <origin xyz="-0.163 0 0" rpy="0 0 0"/>
       <geometry>
 	      <box size="0.406 0.08 0.00570"/>
       </geometry>
@@ -133,7 +133,7 @@
   <joint name="lowerarm" type="fixed">
     <parent link="lowerarm"/>
     <child  link="tip"/>
-    <origin xyz="0.366 0 0.00285" rpy="0 0 0"/>		  <!-- LOWER ARM DIMENIONS -->
+    <origin xyz="-0.366 0 0.00285" rpy="0 0 0"/>		  <!-- LOWER ARM DIMENIONS -->
   </joint>
 
   <!-- TIP FRAME -->

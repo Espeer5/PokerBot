@@ -30,31 +30,45 @@ class Trajectory():
 
         self.q0 = np.array(q0).reshape(3, 1)
         # self.q0b = np.array([-1/2, -1/2, 1/2]).reshape(3,1)
-        self.prevQ = self.q0
-        self.waitQ = np.array([np.pi/2, np.pi/6, -np.pi/6]).reshape(3, 1)
-        self.leftPos = np.array([-0.5, 0.5, 0.0]).reshape(3, 1)
-        self.rightPos = np.array([0.5, 0.5, 0.0]).reshape(3, 1)
+        self.waitQ = np.array([np.pi/2, 0, -np.pi/2]).reshape(3, 1)
+        self.p_wait, _, _, _ = self.chain.fkin(self.waitQ)
+        self.lam = 20
+        self.leftPos = np.array([-0.4, 0.4, 0.1]).reshape(3, 1)
+        self.rightPos = np.array([0.4, 0.4, 0.0]).reshape(3, 1)
+        self.q = self.q0
 
-        self.leftQ = newton_raphson(self.chain, self.leftPos, self.q0)
-        self.rightQ = newton_raphson(self.chain, self.rightPos, self.q0)
+        #self.leftQ = newton_raphson(self.chain, self.leftPos, self.q0)
+        #self.rightQ = newton_raphson(self.chain, self.rightPos, self.q0)
 
     def evaluate(self, t, dt):
-        if t < 3:
-            q, qdot = goto(t, 3, self.q0, np.array(self.q0[0],self.waitQ[1],self.q0[2]).reshape(3, 1))
-        elif t < 6:
-            q,qdot = goto(t, 6, np.array(self.q0[0],self.waitQ[1],self.q0[2]).reshape(3, 1), self.waitQ)
-        else:
-            t_offs = (t - 6) % 20
-            if t_offs < 5:
-                q, qdot = goto(t_offs, 5, self.waitQ, self.leftQ)
-            elif t_offs < 10:
-                q, qdot = goto(t_offs, 10, self.leftQ, self.waitQ)
-            elif t_offs < 15:
-                q, qdot = goto(t_offs, 15, self.waitQ, self.rightQ)
-            elif t_offs < 20:
-                q, qdot = goto(t_offs, 20, self.rightQ, self.waitQ)
+        if t < 5:
+            q, qdot = goto(t, 5, self.q0, np.array([self.q0[0], self.waitQ[1], self.q0[2]]).reshape(3, 1))
+            self.q = q
+        elif t < 10:
+            q, qdot = goto(t - 5, 5, np.array([self.q0[0], self.waitQ[1], self.q0[2]]).reshape(3, 1), self.waitQ)
+            self.q = q
+        elif t < 15:
+            pd, vd = goto(t - 10, 5, self.p_wait, self.leftPos)
 
-        self.prevQ = q
+            # Compute the old fkin
+            p, _, Jv, _ = self.chain.fkin(self.q)
+            print("p: ",p)
+            # Compute the errors
+            epd = ep(pd, p)
+
+            # Compute each q_dot
+            qdot = np.linalg.pinv(Jv) @ (vd + self.lam * epd)
+
+            # Integrate to get the new q
+            q = self.q + qdot * dt
+
+            # Store the new q
+            self.q = q
+            print("q: ",q)
+        
+        else:
+            q, qdot = self.q, np.zeros((3, 1))
+            self.q = q
 
         return q.flatten().tolist(), qdot.flatten().tolist()
         
@@ -122,7 +136,7 @@ class DemoNode(Node):
     # Receive feedback - called repeatedly by incoming messages.
     def recvfbk(self, fbkmsg):
         # Just print the position (for now).
-        print(list(fbkmsg.position))
+        #print(list(fbkmsg.position))
         pass
 
         # Send a command - called repeatedly by the timer.
@@ -137,7 +151,7 @@ class DemoNode(Node):
 
         # Build up the message and publish.
         self.cmdmsg.header.stamp = self.get_clock().now().to_msg()
-        self.cmdmsg.name         = ['one', 'two', 'three']
+        self.cmdmsg.name         = ['base', 'shoulder', 'elbow']
         self.cmdmsg.position     = q
         self.cmdmsg.velocity     = qdot
         self.cmdmsg.effort       = [0.0, 0.0, 0.0]

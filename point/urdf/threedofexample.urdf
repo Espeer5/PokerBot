@@ -103,7 +103,7 @@
   <!-- Elbow motor.  Thickness: X5 = 31.1mm, X8 = 45.1mm -->
   <link name="elbowmotor">
       <visual>
-	<origin xyz="0 0 -0.0057" rpy = "3.1415 0 0"/>
+	<origin xyz="0 0 -0.0057" rpy = "0 0 0"/>
       <geometry>
         <mesh filename="package://basic134/meshes/X5.stl"
 	      scale="0.001 0.001 0.001"/>
@@ -115,7 +115,7 @@
   <joint name="elbow" type="continuous">
     <parent link="elbowmotor"/>
     <child  link="lowerarm"/>
-    <origin xyz="0 0 -0.0311" rpy="3.1415 0 0"/>
+    <origin xyz="0 0 -0.0311" rpy="0 0 0"/>
     <axis   xyz="0 0 1"/>
   </joint>
 
