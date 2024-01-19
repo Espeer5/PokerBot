@@ -9,6 +9,7 @@ import rclpy
 
 from rclpy.node         import Node
 from sensor_msgs.msg    import JointState
+import math
 
 
 #
@@ -21,10 +22,15 @@ RATE = 100.0            # Hertz
 #   DEMO Node Class
 #
 class DemoNode(Node):
+
     # Initialization.
     def __init__(self, name):
         # Initialize the node, naming it as specified
         super().__init__(name)
+
+        # Gravity Model Params
+        self.A = -1.8
+        self.B = -0.25
 
         # Create a temporary subscriber to grab the initial position.
         self.position0 = self.grabfbk()
@@ -43,6 +49,14 @@ class DemoNode(Node):
         # Create a subscriber to continually receive joint state messages.
         self.fbksub = self.create_subscription(
             JointState, '/joint_states', self.recvfbk, 10)
+        
+        self.actpos = None
+        self.statessub = self.create_subscription(JointState, '/joint_states', 
+                                                  self.cb_states, 1)
+        while self.actpos is None:
+            rclpy.spin_once(self)
+            self.get_logger().info("Initial positions: %r" % self.actpos)
+
 
         # Create a timer to keep calculating/sending commands.
         rate       = RATE
@@ -50,11 +64,18 @@ class DemoNode(Node):
         self.get_logger().info("Sending commands with dt of %f seconds (%fHz)" %
                                (self.timer.timer_period_ns * 1e-9, rate))
 
+    def cb_states(self, msg):
+        # Save the actual position.
+        self.actpos = msg.position
+
     # Shutdown
     def shutdown(self):
         # No particular cleanup, just shut down the node.
         self.destroy_node()
 
+    def gravity(self, pos):
+        tau_shoulder = self.A * math.sin(pos[1]) + self.B * math.cos(pos[1])
+        return (0.0, tau_shoulder, 0.0)
 
     # Grab a single feedback - do not call this repeatedly.
     def grabfbk(self):
@@ -83,11 +104,12 @@ class DemoNode(Node):
     # Send a command - called repeatedly by the timer.
     def sendcmd(self):
         # Build up the message and publish.
+        nan = float("nan")
         self.cmdmsg.header.stamp = self.get_clock().now().to_msg()
         self.cmdmsg.name         = ['base', 'shoulder', 'elbow']
-        self.cmdmsg.position     = [0.2, 0.4, -0.4]
-        self.cmdmsg.velocity     = [0.0, 0.0, 0.0]
-        self.cmdmsg.effort       = [0.0, 0.0, 0.0]
+        self.cmdmsg.position     = [nan, nan, nan]
+        self.cmdmsg.velocity     = [nan, nan, nan]
+        self.cmdmsg.effort       = self.gravity(self.actpos)
         self.cmdpub.publish(self.cmdmsg)
 
 

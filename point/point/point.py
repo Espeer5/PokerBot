@@ -12,6 +12,7 @@ from sensor_msgs.msg    import JointState
 from point.TrajectoryUtils    import *
 from point.KinematicChain     import *
 from point.newton_raphson import newton_raphson
+import math
 from enum import Enum
 
 # Constants
@@ -39,7 +40,7 @@ def ikin(t, T, start, goal, prev_q, chain, lambd, dt):
 
     # Compute each q_dot
     JT =  np.transpose(Jv)
-    gamma = 1.0
+    gamma = 0.1
     J_winv = JT @ np.linalg.pinv((Jv @ JT + gamma**2 * np.eye(3)))
     qdot = J_winv @ (vd + lambd * epd)
 
@@ -125,6 +126,10 @@ class DemoNode(Node):
         # Initialize the node, naming it as specified
         super().__init__(name)
 
+        # Gravity constants
+        self.A = -1.8
+        self.B = -0.25
+
         # Create a temporary subscriber to grab the initial position.
         self.position0 = self.grabfbk()
         self.get_logger().info("Initial positions: %r" % self.position0)
@@ -153,15 +158,29 @@ class DemoNode(Node):
         # Report.
         self.get_logger().info("Running point command receiver")
 
+        self.actpos = None
+        self.statessub = self.create_subscription(JointState, '/joint_states', 
+                                                  self.cb_states, 1)
+        while self.actpos is None:
+            rclpy.spin_once(self)
+            self.get_logger().info("Initial positions: %r" % self.actpos)
+
         # Create a timer to keep calculating/sending commands.
         rate       = RATE
         self.timer = self.create_timer(1/rate, self.sendcmd)
         self.dt        = self.timer.timer_period_ns * 1e-9
         self.t         = - self.dt
         self.get_logger().info("Sending commands with dt of %f seconds (%fHz)" %
-                               (self.timer.timer_period_ns * 1e-9, rate))
+                            (self.timer.timer_period_ns * 1e-9, rate))
+        
+    def cb_states(self, msg):
+        # Save the actual position.
+        self.actpos = msg.position
 
-    
+    def gravity(self, pos):
+        tau_shoulder = self.A * math.sin(pos[1]) + self.B * math.cos(pos[1])
+        return (0.0, tau_shoulder, 0.0)
+
     # Receive a point message - called by incoming messages.
     def recvpoint(self, pointmsg):
         # Extract the data.
@@ -174,7 +193,6 @@ class DemoNode(Node):
         # Report.
         self.get_logger().info("Running point %r, %r, %r" % (x,y,z))
     
-
     # Shutdown
     def shutdown(self):
         # No particular cleanup, just shut down the node.
@@ -218,7 +236,7 @@ class DemoNode(Node):
         self.cmdmsg.name         = ['base', 'shoulder', 'elbow']
         self.cmdmsg.position     = q
         self.cmdmsg.velocity     = qdot
-        self.cmdmsg.effort       = [0.0, 0.0, 0.0]
+        self.cmdmsg.effort       = self.gravity(self.actpos)
         self.cmdpub.publish(self.cmdmsg)
 
 
