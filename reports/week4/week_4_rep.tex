@@ -1,0 +1,60 @@
+\documentclass[12 pt]{article}
+
+% Fonts/Symbols/Colors
+\usepackage{fullpage}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage[utf8x]{inputenc}
+\usepackage{helvet}
+\usepackage{pdfpages}
+\renewcommand{\familydefault}{\sfdefault}
+
+% Question counter
+\newcounter{qnum}
+
+% Question Formatting
+\newcommand{\new}[1]{\bigskip \noindent \color{blue} \textbf{#1}\medskip}
+\newcommand{\response}[1]{\color{black} #1 \medskip}
+\newcommand{\q}[1]{\response{\emph{#1}}}
+\newcommand{\Q}[1]{\stepcounter{qnum}\new{Goal {\arabic{qnum}}:} \q{#1}}
+
+% INSERT WEEK NUMBER HERE
+\newcommand{\setnum}{5}
+
+\begin{document}
+
+% Title Section
+\begin{center}
+    \Large \color{blue} CS134: Robotics Systems\color{black}
+    \begin{center}\normalsize Team GLaDOS Weekly Goals \setnum{}\end{center}
+    \noindent{\color{black} \rule{\linewidth}{0.5mm} }
+\end{center}
+
+% Body
+\textbf{Progress}:
+    \begin{enumerate}
+        \item Project proposal drafted for the poker robot 
+        \item CAD model of the robot is complete and ready for prototyping
+        \item Front of card, back of card, and chip detectors prototyped
+        \item Communication with vaccuum pump through serial communication to arduino is in Progress
+    \end{enumerate}
+
+\textbf{To-Do}:
+    \begin{itemize}
+        \item Build and verify all hardware
+        \item Implement game logic and movement algorithms 
+        \item Collect the required hardware to finish up the suction gripping mechanism
+    \end{itemize}
+
+\textbf{Issues}:
+    \begin{itemize}
+        \item None at the moment... Likely to change soon...
+    \end{itemize}
+
+\textbf{Project Proposal Slides}
+\includepdf[page=-]{prop.pdf}
+
+\end{document}
