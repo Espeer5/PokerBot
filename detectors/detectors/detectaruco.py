@@ -46,7 +46,7 @@ class DetectorNode(Node):
         # appropriate tags.  DICT_6x6_1000 has 1000 options (way too
         # many).  DICT_6x6_250 has 250 options.  DICT_6x6_50 is
         # probably enough for our projects...
-        self.dict   = cv2.aruco.Dictionary_get(cv2.aruco.DICT_6X6_50)
+        self.dict   = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
         self.params = cv2.aruco.DetectorParameters_create()
 
         # Finally, subscribe to the incoming image topic.  Using a
@@ -78,6 +78,10 @@ class DetectorNode(Node):
         # Detect.
         (boxes, ids, rejected) = cv2.aruco.detectMarkers(
             frame, self.dict, parameters=self.params)
+        # self.get_logger().info("boxes:" + str(len((boxes))))
+        # self.get_logger().info("rejected:" + str(len((boxes))))
+        # self.get_logger().info("rejected" + str(type(rejected)))
+        # self.get_logger().info("rejected" + str(rejected))
 
         # Loop over each marker: the list of corners and ID for this marker.
         if len(boxes) > 0:

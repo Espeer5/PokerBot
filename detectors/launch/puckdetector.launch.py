@@ -1,4 +1,4 @@
-"""Launch the USB camera node and HSV tuning utility.
+"""Launch the USB camera node and puck detector.
 
 This launch file is intended show how the pieces come together.
 Please copy the relevant pieces.
@@ -44,15 +44,15 @@ def generate_launch_description():
                       {'auto_white_balance':  False},
                       {'white_balance':       3200},
                       {'autoexposure':        False},
-                      {'exposure':            250},
+                      {'exposure':            -1},
                       {'autofocus':           True},
                       {'focus':               -1}])
 
-    # Configure the HSV tuning utility node
-    node_hsvtune = Node(
-        name       = 'hsvtuner', 
-        package    = 'detectors',
-        executable = 'hsvtune',
+    # Configure the ball detector node
+    node_puckdetector = Node(
+        name       = 'puckdetector', 
+        package    = 'detect',
+        executable = 'puckdetector',
         output     = 'screen',
         remappings = [('/image_raw', '/usb_cam/image_raw')])
 
@@ -65,5 +65,5 @@ def generate_launch_description():
 
         # Start the nodes.
         node_usbcam,
-        node_hsvtune,
+        node_puckdetector,
     ])

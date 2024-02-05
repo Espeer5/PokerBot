@@ -1,4 +1,5 @@
 from setuptools import find_packages, setup
+from glob import glob
 
 package_name = 'detect'
 
@@ -10,6 +11,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name + '/launch', glob('launch/*'))
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -20,6 +22,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-        ],
+            'puckdetector  = detect.puckdetector:main',
+            'backCard      = detect.backCard:main',
+            'point         = detect.point:main',],
     },
 )

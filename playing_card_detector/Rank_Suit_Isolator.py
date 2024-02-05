@@ -21,7 +21,7 @@ SUIT_WIDTH = 70
 SUIT_HEIGHT = 100
 
 # If using a USB Camera instead of a PiCamera, change PiOrUSB to 2
-PiOrUSB = 1
+PiOrUSB = 2
 
 if PiOrUSB == 1:
     # Import packages from picamera library
@@ -67,11 +67,11 @@ for Name in ['Ace','Two','Three','Four','Five','Six','Seven','Eight',
     if PiOrUSB == 2: # USB camera
         # Press 'p' to take a picture
         while(True):
-
             ret, frame = cap.read()
             cv2.imshow("Card",frame)
             key = cv2.waitKey(1) & 0xFF
             if key == ord("p"):
+                print("break")
                 image = frame
                 break
 
@@ -81,7 +81,7 @@ for Name in ['Ace','Two','Three','Four','Five','Six','Seven','Eight',
     retval, thresh = cv2.threshold(blur,100,255,cv2.THRESH_BINARY)
 
     # Find contours and sort them by size
-    dummy,cnts,hier = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    cnts,hier = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
     cnts = sorted(cnts, key=cv2.contourArea,reverse=True)
 
     # Assume largest contour is the card. If there are no contours, print an error
@@ -114,7 +114,7 @@ for Name in ['Ace','Two','Three','Four','Five','Six','Seven','Eight',
     # Isolate suit or rank
     if i <= 13: # Isolate rank
         rank = corner_thresh[20:185, 0:128] # Grabs portion of image that shows rank
-        dummy, rank_cnts, hier = cv2.findContours(rank, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        rank_cnts, hier = cv2.findContours(rank, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
         rank_cnts = sorted(rank_cnts, key=cv2.contourArea,reverse=True)
         x,y,w,h = cv2.boundingRect(rank_cnts[0])
         rank_roi = rank[y:y+h, x:x+w]
@@ -123,7 +123,7 @@ for Name in ['Ace','Two','Three','Four','Five','Six','Seven','Eight',
 
     if i > 13: # Isolate suit
         suit = corner_thresh[186:336, 0:128] # Grabs portion of image that shows suit
-        dummy, suit_cnts, hier = cv2.findContours(suit, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        suit_cnts, hier = cv2.findContours(suit, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
         suit_cnts = sorted(suit_cnts, key=cv2.contourArea,reverse=True)
         x,y,w,h = cv2.boundingRect(suit_cnts[0])
         suit_roi = suit[y:y+h, x:x+w]

@@ -7,11 +7,11 @@ periodic waving motion.
 import numpy as np
 import rclpy
 
+from geometry_msgs.msg  import Point, Pose
 from rclpy.node         import Node
 from sensor_msgs.msg    import JointState
 from point.TrajectoryUtils    import *
 from point.KinematicChain     import *
-from point.newton_raphson import newton_raphson
 import math
 from enum import Enum
 
@@ -26,6 +26,17 @@ class States(Enum):
     GOTO = 3
     RETURN = 4
     ESTOP = 5
+    BRIDGE = 7
+    STRIP2 = 8
+
+
+class GoalTypes(Enum):
+    PUCK = 1
+    STRIP = 2
+
+
+def posit_within(p1, p2, tol):
+    return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2 + (p1[2] - p2[2])**2) <= tol
 
 
 def ikin(t, T, start, goal, prev_q, chain, lambd, dt):
@@ -67,11 +78,13 @@ class Trajectory():
         self.state = States.INIT
         self.goals = []
         self.curr_goal = None
+        self.strip1 = None
         self.start_time = 0
         self.q = self.q0
         self.node = demo_node
 
         self.has_collided = False
+        self.strip = False
 
     def add_goal(self, goal):
         self.goals.append(goal)
@@ -82,7 +95,7 @@ class Trajectory():
             qdot = np.array([0.0, 0.0, 0.0]).reshape(3, 1)
             self.start_time = t
             self.state = States.ESTOP
-            self.curr_goal = np.array(self.node.actpos).reshape(3, 1)
+            self.curr_goal = (np.array(self.node.actpos).reshape(3, 1), None)
         else:
             match self.state:
                 case States.INIT:
@@ -110,15 +123,42 @@ class Trajectory():
                         self.state = States.GOTO
                 case States.GOTO:
                     q, qdot = ikin(t - self.start_time, 5, self.p_wait,
-                                self.curr_goal, self.q, self.chain, self.lam, dt)
+                                self.curr_goal[0], self.q, self.chain, self.lam, dt)
                     # Store the new q
                     self.q = q
                     if t - self.start_time >= 5:
                         self.start_time = t
-                        self.curr_goal = q
+                        if self.curr_goal[1] == GoalTypes.STRIP:
+                            peek_goal = self.goals[0][0]
+                            inter_goal = self.curr_goal[0] + ((peek_goal - self.curr_goal[0]) / 2)
+                            inter_goal = np.array([inter_goal[0][0], 
+                                                    inter_goal[1][0],
+                                                    inter_goal[2][0] + 0.022]).reshape(3, 1)
+                            self.strip1 = self.curr_goal[0]
+                            self.curr_goal = (inter_goal, None)
+                            self.state = States.BRIDGE
+                        else:
+                            self.curr_goal = (q, None)
+                            self.state = States.RETURN
+                case States.BRIDGE:
+                    q, qdot = ikin(t - self.start_time, 1.5, self.strip1, self.curr_goal[0],
+                                   self.q, self.chain, self.lam, dt)
+                    self.q = q
+                    if t - self.start_time >= 1.5:
+                        self.start_time = t
+                        self.strip1 = self.curr_goal[0]
+                        self.curr_goal = self.goals.pop()
+                        self.state = States.STRIP2
+                case States.STRIP2:
+                    q, qdot = ikin(t - self.start_time, 1.5, self.strip1, self.curr_goal[0],
+                                   self.q, self.chain, self.lam, dt)
+                    self.q = q
+                    if t - self.start_time >= 1.5:
+                        self.start_time = t
+                        self.curr_goal = (q, None)
                         self.state = States.RETURN
                 case States.RETURN:
-                    q, qdot = goto(t - self.start_time, 5, self.curr_goal, self.waitQ)
+                    q, qdot = goto(t - self.start_time, 5, self.curr_goal[0], self.waitQ)
                     # Store the new q
                     self.q = q
                     if t - self.start_time >= 5:
@@ -148,6 +188,9 @@ class DemoNode(Node):
         self.A = -1.8
         self.B = -0.25
 
+        # Detected contact location type and point from CV
+        self.prev_contact = (None, None)
+
         # Create a temporary subscriber to grab the initial position.
         self.position0 = self.grabfbk()
         self.get_logger().info("Initial positions: %r" % self.position0)
@@ -172,7 +215,10 @@ class DemoNode(Node):
         # Create a subscriber to receive point messages.
         self.fbksub = self.create_subscription(
             Point, '/point', self.recvpoint, 10)
-
+        
+        # Create a subscriber to receive pose messages.
+        self.fbksub2 = self.create_subscription(
+            Pose, '/pose', self.recvpose, 10)
 
         # Report.
         self.get_logger().info("Running point command receiver")
@@ -206,11 +252,34 @@ class DemoNode(Node):
         x = pointmsg.x
         y = pointmsg.y
         z = pointmsg.z
+        if self.trajectory.state == States.WAIT and len(self.trajectory.goals) == 0:
+           self.trajectory.add_goal((np.array([x, y, z]).reshape(3, 1), GoalTypes.PUCK))
+           self.get_logger().info("Running point %r, %r, %r" % (x,y,z))
 
-        self.trajectory.add_goal(np.array([x, y, z]).reshape(3, 1))
-        
-        # Report.
-        self.get_logger().info("Running point %r, %r, %r" % (x,y,z))
+    # Receive a pose message - called by incoming messages.
+    def recvpose(self, posemsg):
+        if self.trajectory.state == States.WAIT and len(self.trajectory.goals) == 0:
+            # Extract the data.
+            x = posemsg.position.x
+            y = posemsg.position.y
+            z = posemsg.position.z
+
+            qx = posemsg.orientation.x
+            qy = posemsg.orientation.y
+            qz = posemsg.orientation.z
+            qw = posemsg.orientation.w
+
+            theta = (np.arcsin(qz)*2+np.arccos(qw)*2)/2
+
+            self.get_logger().info("theta = " + str(theta))
+            # self.trajectory.add_goal(p_up)
+            # self.trajectory.add_goal(p_down)
+            goal_pos_first = (x - 0.025*np.sin(np.pi/2 - theta),y+0.025*np.cos(np.pi/2 - theta),0.0)
+            goal_pos_second = (x,y,0.0)
+            goal_pos_third = (x + 0.025*np.sin(np.pi/2 - theta),y-0.025*np.cos(np.pi/2 - theta),0.0)
+            self.trajectory.add_goal((np.array([goal_pos_first[0], goal_pos_first[1], goal_pos_first[2]]).reshape(3, 1), GoalTypes.STRIP))
+            self.trajectory.add_goal((np.array([goal_pos_third[0], goal_pos_third[1], goal_pos_third[2]]).reshape(3, 1), GoalTypes.STRIP))
+            self.get_logger().info("Running point %r, %r, %r" % (goal_pos_first[0],goal_pos_first[1],goal_pos_first[2]))
     
     # Shutdown
     def shutdown(self):
@@ -239,9 +308,6 @@ class DemoNode(Node):
         if self.actpos is not None:
             expected = np.array(self.trajectory.q)
             actual = np.array(fbkmsg.position)
-            # self.effort_list.append(np.linalg.norm((expected[0] - actual[0])))
-            # self.get_logger().info(f"max= {np.max(self.effort_list)}")
-            # self.get_logger().info(f"curr= {np.linalg.norm(expected[0] - actual[0])}")
 
             for i, level in enumerate([0.015, 0.018, 0.025]):
                 if np.linalg.norm(expected[i] - actual[i]) > level:

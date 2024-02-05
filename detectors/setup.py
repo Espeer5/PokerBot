@@ -31,6 +31,7 @@ setup(
             'depthincenter = detectors.depthincenter:main',
             'detectaruco   = detectors.detectaruco:main',
             'writearuco    = detectors.writearuco:main',
+            'puckdetector  = detect.puckdetector:main',
         ],
     },
 )

@@ -78,6 +78,11 @@ class HSVTuneNode(Node):
 
         # Thresholds in Hmin/max, Smin/max, Vmin/max
         self.hsvlimits = np.array([[20, 30], [90, 170], [60, 255]])
+        # self.hsvlimits = np.array([[0, 30], [220, 255], [150, 185]])
+
+        # # 16, 238, 162)
+        # # 15, 231, 173
+
 
         # Create trackbars to vary the thresholds.
         self.tracker = HSVTracker(self.hsvlimits)
