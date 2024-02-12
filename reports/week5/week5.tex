@@ -1,0 +1,57 @@
+\documentclass[12 pt]{article}
+
+% Fonts/Symbols/Colors
+\usepackage{fullpage}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage[utf8x]{inputenc}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+% Question counter
+\newcounter{qnum}
+
+% Question Formatting
+\newcommand{\new}[1]{\bigskip \noindent \color{blue} \textbf{#1}\medskip}
+\newcommand{\response}[1]{\color{black} #1 \medskip}
+\newcommand{\q}[1]{\response{\emph{#1}}}
+\newcommand{\Q}[1]{\stepcounter{qnum}\new{Goal {\arabic{qnum}}:} \q{#1}}
+
+% INSERT WEEK NUMBER HERE
+\newcommand{\setnum}{6}
+
+\begin{document}
+
+% Title Section
+\begin{center}
+    \Large \color{blue} CS134: Robotics Systems\color{black}
+    \begin{center}\normalsize Team GLaDOS Weekly Goals \setnum{}\end{center}
+    \noindent{\color{black} \rule{\linewidth}{0.5mm} }
+\end{center}
+
+% Body
+\textbf{Progress}:
+    \begin{enumerate}
+        \item All arm parts prototyped and assembled
+        \item Parts delivered
+        \item Suction cup system assembled and tested
+        \item Suction system refind by switching H-bridge component.
+        \item URDF made for custom hardware
+    \end{enumerate}
+
+\textbf{To-Do}:
+    \begin{itemize}
+        \item Get a poker mat prototype together and working
+        \item Begin coding the manipulation of objects
+        \item Start working on the game logic
+    \end{itemize}
+
+\textbf{Issues}:
+    \begin{itemize}
+        \item None for now.
+    \end{itemize}
+
+\end{document}
