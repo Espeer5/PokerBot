@@ -31,7 +31,7 @@ def generate_launch_description():
     rvizcfg = os.path.join(pkgdir('basic134'), 'rviz/viewurdf.rviz')
 
     # Locate/load the robot's URDF file (XML).
-    urdf = os.path.join(pkgdir('basic134'), 'urdf/threedofexample.urdf')
+    urdf = os.path.join(pkgdir('basic134'), 'urdf/pb1.urdf')
     with open(urdf, 'r') as file:
         robot_description = file.read()
 
@@ -72,8 +72,8 @@ def generate_launch_description():
         executable = 'hebinode',
         output     = 'screen',
         parameters = [{'family':   'robotlab'},
-                      {'motors':   ['8.3',  '8.5',      '8.4']},
-                      {'joints':   ['base', 'shoulder', 'elbow']},
+                      {'motors':   ['8.3',  '8.5', '8.4', '8.1']},
+                      {'joints':   ['base', 'shoulder', 'elbow', 'tip']},
                       {'lifetime': 200.0}],
         on_exit    = Shutdown())
 
@@ -83,8 +83,8 @@ def generate_launch_description():
         executable = 'hebinode',
         output     = 'screen',
         parameters = [{'family':   'robotlab'},
-                      {'motors':   ['8.3',  '8.5',      '8.4']},
-                      {'joints':   ['base', 'shoulder', 'elbow']}],
+                      {'motors':   ['8.3',  '8.5', '8.4', '8.1']},
+                      {'joints':   ['base', 'shoulder', 'elbow', 'tip']}],
         on_exit    = Shutdown())
 
     # Configure a node for the simple demo.  PLACEHOLDER FOR YOUR CODE!!

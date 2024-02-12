@@ -18,8 +18,11 @@ BKG_THRESH = 60
 CARD_THRESH = 30
 
 # Width and height of card corner, where rank and suit are
-CORNER_WIDTH = 32
-CORNER_HEIGHT = 84
+# CORNER_WIDTH = 32
+# CORNER_HEIGHT = 84
+CORNER_H0 = 12
+CORNER_WIDTH = 24
+CORNER_HEIGHT = 80
 
 # Dimensions of rank train images
 RANK_WIDTH = 70
@@ -29,8 +32,8 @@ RANK_HEIGHT = 125
 SUIT_WIDTH = 70
 SUIT_HEIGHT = 100
 
-RANK_DIFF_MAX = 2000
-SUIT_DIFF_MAX = 700
+# RANK_DIFF_MAX = 2000
+# SUIT_DIFF_MAX = 700
 
 CARD_MAX_AREA = 30000
 CARD_MIN_AREA = 6250
@@ -50,6 +53,8 @@ class Query_card:
         self.warp = [] # 200x300, flattened, grayed, blurred image
         self.rank_img = [] # Thresholded, sized image of card's rank
         self.suit_img = [] # Thresholded, sized image of card's suit
+        self.rank_img2 = [] # Thresholded, sized image of card's rank (bottom right)
+        self.suit_img2 = [] # Thresholded, sized image of card's suit (bottom right)
         self.best_rank_match = "Unknown" # Best matched rank
         self.best_suit_match = "Unknown" # Best matched suit
         self.rank_diff = 0 # Difference between rank image and best matched train rank image
@@ -168,6 +173,67 @@ def find_cards(thresh_image):
 
     return cnts_sort, cnt_is_card
 
+def get_rank_and_suit_images(qCard, bottom_right=False):
+    # Grab corner of warped card image and do a 4x zoom
+    qCard_warp = qCard.warp
+    if bottom_right:
+        qCard_warp = cv2.rotate(qCard_warp, cv2.ROTATE_180)
+
+    cv2.imshow("card", qCard_warp)
+    cv2.waitKey(0)
+
+    Qcorner = qCard_warp[CORNER_H0:CORNER_HEIGHT, 0:CORNER_WIDTH]
+
+    # print("Qcorner bottom-right=", Qcorner.shape)
+    # exit()
+
+    cv2.imshow("corner", Qcorner)
+    cv2.waitKey(0)
+
+    Qcorner_zoom = cv2.resize(Qcorner, (0,0), fx=4, fy=4)
+
+    # Sample known white pixel intensity to determine good threshold level
+    white_level = Qcorner_zoom[15,int((CORNER_WIDTH*4)/2)]
+    thresh_level = white_level - CARD_THRESH
+    if (thresh_level <= 0):
+        thresh_level = 1
+    retval, query_thresh = cv2.threshold(Qcorner_zoom, thresh_level, 255, cv2. THRESH_BINARY_INV)
+
+    cv2.imshow("query threshold", query_thresh)
+    cv2.waitKey(0)
+    
+    # Split in to top and bottom half (top shows rank, bottom shows suit)
+    Qrank = query_thresh[20:185, 0:128]
+    Qsuit = query_thresh[186:336, 0:128]
+
+    # Find rank contour and bounding rectangle, isolate and find largest contour
+    Qrank_cnts, hier = cv2.findContours(Qrank, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    Qrank_cnts = sorted(Qrank_cnts, key=cv2.contourArea, reverse=True)
+
+    # Find bounding rectangle for largest contour, use it to resize query rank
+    # image to match dimensions of the train rank image
+    rank_image = np.array([])
+    if len(Qrank_cnts) != 0:
+        x1,y1,w1,h1 = cv2.boundingRect(Qrank_cnts[0])
+        Qrank_roi = Qrank[y1:y1+h1, x1:x1+w1]
+        Qrank_sized = cv2.resize(Qrank_roi, (RANK_WIDTH,RANK_HEIGHT), 0, 0)
+        rank_image = Qrank_sized
+
+    # Find suit contour and bounding rectangle, isolate and find largest contour
+    Qsuit_cnts, hier = cv2.findContours(Qsuit, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+    Qsuit_cnts = sorted(Qsuit_cnts, key=cv2.contourArea,reverse=True)
+    
+    # Find bounding rectangle for largest contour, use it to resize query suit
+    # image to match dimensions of the train suit image
+    suit_image = np.array([])
+    if len(Qsuit_cnts) != 0:
+        x2,y2,w2,h2 = cv2.boundingRect(Qsuit_cnts[0])
+        Qsuit_roi = Qsuit[y2:y2+h2, x2:x2+w2]
+        Qsuit_sized = cv2.resize(Qsuit_roi, (SUIT_WIDTH, SUIT_HEIGHT), 0, 0)
+        suit_image = Qsuit_sized
+
+    return rank_image, suit_image
+
 def preprocess_card(contour, image):
     """Uses contour to find information about the query card. Isolates rank
     and suit images from the card."""
@@ -193,48 +259,16 @@ def preprocess_card(contour, image):
     cent_y = int(average[0][1])
     qCard.center = [cent_x, cent_y]
 
+    cv2.imshow("pre-flattener", image)
+    cv2.waitKey(0)
     # Warp card into 200x300 flattened image using perspective transform
     qCard.warp = flattener(image, pts, w, h)
 
-    # Grab corner of warped card image and do a 4x zoom
-    Qcorner = qCard.warp[0:CORNER_HEIGHT, 0:CORNER_WIDTH]
-    Qcorner_zoom = cv2.resize(Qcorner, (0,0), fx=4, fy=4)
+    qCard.rank_img, qCard.suit_img = get_rank_and_suit_images(qCard)
+    qCard.rank_img2, qCard.suit_img2 = get_rank_and_suit_images(qCard, bottom_right=True)
 
-    # Sample known white pixel intensity to determine good threshold level
-    white_level = Qcorner_zoom[15,int((CORNER_WIDTH*4)/2)]
-    thresh_level = white_level - CARD_THRESH
-    if (thresh_level <= 0):
-        thresh_level = 1
-    retval, query_thresh = cv2.threshold(Qcorner_zoom, thresh_level, 255, cv2. THRESH_BINARY_INV)
-    
-    # Split in to top and bottom half (top shows rank, bottom shows suit)
-    Qrank = query_thresh[20:185, 0:128]
-    Qsuit = query_thresh[186:336, 0:128]
-
-    # Find rank contour and bounding rectangle, isolate and find largest contour
-    Qrank_cnts, hier = cv2.findContours(Qrank, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-    Qrank_cnts = sorted(Qrank_cnts, key=cv2.contourArea,reverse=True)
-
-    # Find bounding rectangle for largest contour, use it to resize query rank
-    # image to match dimensions of the train rank image
-    if len(Qrank_cnts) != 0:
-        x1,y1,w1,h1 = cv2.boundingRect(Qrank_cnts[0])
-        Qrank_roi = Qrank[y1:y1+h1, x1:x1+w1]
-        Qrank_sized = cv2.resize(Qrank_roi, (RANK_WIDTH,RANK_HEIGHT), 0, 0)
-        qCard.rank_img = Qrank_sized
-
-    # Find suit contour and bounding rectangle, isolate and find largest contour
-    Qsuit_cnts, hier = cv2.findContours(Qsuit, cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-    Qsuit_cnts = sorted(Qsuit_cnts, key=cv2.contourArea,reverse=True)
-    
-    # Find bounding rectangle for largest contour, use it to resize query suit
-    # image to match dimensions of the train suit image
-    if len(Qsuit_cnts) != 0:
-        x2,y2,w2,h2 = cv2.boundingRect(Qsuit_cnts[0])
-        Qsuit_roi = Qsuit[y2:y2+h2, x2:x2+w2]
-        Qsuit_sized = cv2.resize(Qsuit_roi, (SUIT_WIDTH, SUIT_HEIGHT), 0, 0)
-        qCard.suit_img = Qsuit_sized
-
+    # assert qCard.rank_img.shape == qCard.rank_img2.shape, f"{qCard.rank_img.shape}, {qCard.rank_img2.shape}"
+    # assert qCard.suit_img.shape == qCard.suit_img2.shape, f"{qCard.suit_img.shape}, {qCard.suit_img2.shape}"
     return qCard
 
 def match_card(qCard, train_ranks, train_suits):
@@ -244,46 +278,83 @@ def match_card(qCard, train_ranks, train_suits):
 
     best_rank_match_diff = 10000
     best_suit_match_diff = 10000
-    best_rank_match_name = "Unknown"
-    best_suit_match_name = "Unknown"
+    # best_rank_match_name = "Unknown"
+    # best_suit_match_name = "Unknown"
+    best_rank_name = "Unknown"
+    best_suit_name = "Unknown"
     i = 0
 
     # If no contours were found in query card in preprocess_card function,
     # the img size is zero, so skip the differencing process
     # (card will be left as Unknown)
-    if (len(qCard.rank_img) != 0) and (len(qCard.suit_img) != 0):
+    
         
-        # Difference the query card rank image from each of the train rank images,
-        # and store the result with the least difference
-        for Trank in train_ranks:
+    # Difference the query card rank image from each of the train rank images,
+    # and store the result with the least difference
+    # cv2.imshow("Rank Image 1", qCard.rank_img)
+    # cv2.waitKey(0)
 
-                diff_img = cv2.absdiff(qCard.rank_img, Trank.img)
-                rank_diff = int(np.sum(diff_img)/255)
-                
-                if rank_diff < best_rank_match_diff:
-                    best_rank_diff_img = diff_img
-                    best_rank_match_diff = rank_diff
-                    best_rank_name = Trank.name
+    # cv2.imshow("Rank Image 2", qCard.rank_img2)
+    # cv2.waitKey(0)
 
-        # Same process with suit images
-        for Tsuit in train_suits:
-                
-                diff_img = cv2.absdiff(qCard.suit_img, Tsuit.img)
-                suit_diff = int(np.sum(diff_img)/255)
-                
-                if suit_diff < best_suit_match_diff:
-                    best_suit_diff_img = diff_img
-                    best_suit_match_diff = suit_diff
-                    best_suit_name = Tsuit.name
+    # cv2.imshow("suit Image 1", qCard.suit_img)
+    # cv2.waitKey(0)
+
+    # cv2.imshow("suit Image 2", qCard.suit_img2)
+    # cv2.waitKey(0)
+
+    for Trank in train_ranks:
+
+        rank_diff = best_rank_match_diff
+        if (len(qCard.rank_img) != 0):
+            diff_img = cv2.absdiff(qCard.rank_img, Trank.img)
+            rank_diff = int(np.sum(diff_img)/255)
+
+        rank_diff2 = best_rank_match_diff
+        if (len(qCard.rank_img2) != 0):
+            diff_img2 = cv2.absdiff(qCard.rank_img2, Trank.img)
+            rank_diff2 = int(np.sum(diff_img2)/255)
+            
+        best_rank_diff = min(rank_diff, rank_diff2)
+            
+        if best_rank_diff < best_rank_match_diff:
+            best_rank_diff_img = diff_img
+            best_rank_match_diff = rank_diff
+            best_rank_name = Trank.name
+
+    # cv2.imshow("DIFF", best_rank_diff_img) 
+    # # waits for user to press any key 
+    # # (this is necessary to avoid Python kernel form crashing) 
+    # cv2.waitKey(0) 
+
+    # Same process with suit images
+    for Tsuit in train_suits:
+            
+        suit_diff = best_suit_match_diff
+        if (len(qCard.suit_img) != 0):
+            diff_img = cv2.absdiff(qCard.suit_img, Tsuit.img)
+            suit_diff = int(np.sum(diff_img)/255)
+
+        suit_diff2 = best_suit_match_diff
+        if (len(qCard.suit_img2) != 0):
+            diff_img2 = cv2.absdiff(qCard.suit_img2, Tsuit.img)
+            suit_diff2 = int(np.sum(diff_img2)/255)
+
+        suit_diff = min(suit_diff, suit_diff2)
+        
+        if suit_diff < best_suit_match_diff:
+            # best_suit_diff_img = diff_img
+            best_suit_match_diff = suit_diff
+            best_suit_name = Tsuit.name
 
     # Combine best rank match and best suit match to get query card's identity.
     # If the best matches have too high of a difference value, card identity
     # is still Unknown
-    if (best_rank_match_diff < RANK_DIFF_MAX):
-        best_rank_match_name = best_rank_name
+    # if (best_rank_match_diff < RANK_DIFF_MAX):
+    best_rank_match_name = best_rank_name
 
-    if (best_suit_match_diff < SUIT_DIFF_MAX):
-        best_suit_match_name = best_suit_name
+    # if (best_suit_match_diff < SUIT_DIFF_MAX):
+    best_suit_match_name = best_suit_name
 
     # Return the identiy of the card and the quality of the suit and rank match
     return best_rank_match_name, best_suit_match_name, best_rank_match_diff, best_suit_match_diff
@@ -372,8 +443,8 @@ def flattener(image, pts, w, h):
             temp_rect[3] = pts[1][0] # Bottom left
             
         
-    maxWidth = 200
-    maxHeight = 300
+    maxWidth = 200 + 100
+    maxHeight = 300 + 100
 
     # Create destination array, calculate perspective transform matrix,
     # and warp card image
@@ -381,7 +452,5 @@ def flattener(image, pts, w, h):
     M = cv2.getPerspectiveTransform(temp_rect,dst)
     warp = cv2.warpPerspective(image, M, (maxWidth, maxHeight))
     warp = cv2.cvtColor(warp,cv2.COLOR_BGR2GRAY)
-
-        
 
     return warp
