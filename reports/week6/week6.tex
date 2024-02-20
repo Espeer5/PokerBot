@@ -1,0 +1,63 @@
+\documentclass[12 pt]{article}
+
+% Fonts/Symbols/Colors
+\usepackage{fullpage}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage{xcolor}
+\usepackage{amssymb}
+\usepackage{verbatim}
+\usepackage[utf8x]{inputenc}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+
+% Question counter
+\newcounter{qnum}
+
+% Question Formatting
+\newcommand{\new}[1]{\bigskip \noindent \color{blue} \textbf{#1}\medskip}
+\newcommand{\response}[1]{\color{black} #1 \medskip}
+\newcommand{\q}[1]{\response{\emph{#1}}}
+\newcommand{\Q}[1]{\stepcounter{qnum}\new{Goal {\arabic{qnum}}:} \q{#1}}
+
+% INSERT WEEK NUMBER HERE
+\newcommand{\setnum}{7}
+
+\begin{document}
+
+% Title Section
+\begin{center}
+    \Large \color{blue} CS134: Robotics Systems\color{black}
+    \begin{center}\normalsize Team GLaDOS Weekly Goals \setnum{}\end{center}
+    \noindent{\color{black} \rule{\linewidth}{0.5mm} }
+\end{center}
+
+% Body
+\textbf{Progress}:
+    \begin{enumerate}
+        \item Trajectory sequences programmed for the robot to move from place to 
+        place in both joint and task space. 
+        \item Card detector massively improved for close to 100\% accuraccy 
+        \item Cards and chips lifted and dropped using the suction system and movements in task space.
+        \item Cards successfully flipped using the suction system
+        \item CAD design and model produced for adding an additional DOF to the 
+        robot's wrist.
+    \end{enumerate}
+
+\textbf{To-Do}:
+    \begin{itemize}
+        \item Dial in movements of the robot to have a more precise and smooth pickup and 
+        drop sequence as well as flipping sequence.
+        \item Add the additional DOF to the robot's wrist.
+        \item Incorporate the detectors into the robot movements - in particular, this week be 
+        able to find a card in the workspace and pick it up and move it to another specified location 
+        in task space.
+        \item Program the dealing sequence.
+    \end{itemize}
+
+\textbf{Issues}:
+    \begin{itemize}
+        \item Progress is slow....
+    \end{itemize}
+
+\end{document}
