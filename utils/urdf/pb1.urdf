@@ -1,0 +1,218 @@
+<?xml version="1.0"?>
+
+<robot name="pokerBot">
+
+    <link name="world"/>
+
+    <joint name="placement" type="fixed"> <!-- Placement of base w.r.t world -->
+        <parent link="world"/>
+        <child link="baseplate"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+
+    <link name="baseplate">
+        <visual>
+            <origin xyz="0 0.0625 0" rpy="1.5708 0 -1.5708"/> <!-- Placement of baseplate VISUAL -->
+                <geometry>
+                    <mesh filename="package://pb_utils/meshes/base_Ass.STL"
+                                scale="0.001 0.001 0.001"/>
+                </geometry>
+                <material name="metal"/>
+        </visual>
+    </link>
+
+    <joint name="baseplate" type="fixed">
+        <parent link="baseplate"/>
+        <child link="basemotor"/>
+        <origin xyz="0 0.085 0.0067" rpy="0 0 0"/> <!-- Baseplate connection to basemotor frame -->
+    </joint>
+
+    <!-- BASE MOTOR: Thickness: X5 = 31.1mm, X8 = 45.1mm -->
+    <link name="basemotor">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 1.5708"/>
+            <geometry>
+                <mesh filename="package://pb_utils/meshes/X5.stl"
+	      scale="0.001 0.001 0.001"/>
+            </geometry>
+            <material name="hebi"/>
+        </visual>
+    </link>
+
+    <joint name="base" type="continuous"> <!-- Revolute pan angle joint -->
+        <parent link="basemotor"/>
+        <child link="lbracket"/>
+        <origin xyz="0 0 0.0311" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>
+    </joint>
+
+    <link name="lbracket">
+        <visual>
+        <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+            <geometry>
+                <mesh  filename="package://pb_utils/meshes/lb_ass.STL"
+                scale="0.001 0.001 0.001"/>
+            </geometry>
+            <material name="metal"/>
+        </visual>
+    </link>
+
+    <joint name="lbracket" type="fixed">
+        <parent link="lbracket"/>
+        <child link="shouldermotor"/>
+        <origin xyz="0 -0.0725 0.060" rpy="0 -1.5708 0"/> <!-- L BRACKET DIMENIONS -->
+    </joint>
+
+    <!-- SHOULDER MOTOR: Thickness: X5 = 31.1mm, X8 = 45.1mm -->
+    <link name="shouldermotor">
+        <visual>
+            <origin xyz="0 0 0" rpy = "-1.5708 3.1412 0"/>
+            <geometry>
+                <mesh filename="package://pb_utils/meshes/X8.stl"
+	      scale="0.001 0.001 0.001"/>
+            </geometry>
+            <material name="hebi"/>
+        </visual>
+    </link>
+
+    <joint name="shoulder" type="continuous">
+        <parent link="shouldermotor"/>
+        <child link="upperarm"/>
+        <origin xyz="0 0.0451 0" rpy="0 0 0"/> <!-- Revolute shoulder joint location -->
+        <axis xyz="0 1 0"/>
+    </joint>
+
+    <link name="upperarm">
+        <visual>
+            <origin xyz="0.03255 0 -0.04" rpy = "0 -1.5708 0"/>
+            <geometry>
+                <mesh filename="package://pb_utils/meshes/18in_Arm_V2.STL"
+                            scale="0.001 0.001 0.001"/>
+            </geometry>
+            <material name="metal"/>
+        </visual>
+    </link>
+
+    <joint name="upperarm" type="fixed">
+        <parent link="upperarm"/>
+        <child link="elbowmotor"/>
+        <origin xyz="0 0 0.3922" rpy="0 0 0"/> <!-- upperarm dimension -->
+    </joint>
+
+    <!-- Elbow motor.  Thickness: X5 = 31.1mm, X8 = 45.1mm -->
+    <link name="elbowmotor">
+        <visual>
+            <origin xyz="0 0 0" rpy = "1.5708 -1.5708 0"/>
+            <geometry>
+                <mesh filename="package://pb_utils/meshes/X5.stl"
+	      scale="0.001 0.001 0.001"/>
+            </geometry>
+            <material name="hebi"/>
+        </visual>
+    </link>
+
+    <joint name="elbow" type="continuous">
+        <parent link="elbowmotor"/>
+        <child  link="lowerarm"/>
+        <origin xyz="0 -0.035 0" rpy="0 0 0"/>
+        <axis   xyz="0 -1 0"/>
+    </joint>
+
+    <!-- Shift across the upper arm (1/4in thickness) -->
+    <link name="lowerarm">
+        <visual>
+            <origin xyz="0.03255 0 -0.04" rpy = "0 -1.5708 0"/>
+            <geometry>
+                <mesh filename="package://pb_utils/meshes/16in_Arm_V2.STL"
+                            scale="0.001 0.001 0.001"/>
+            </geometry>
+            <material name="metal"/>
+        </visual>
+    </link>
+
+    <joint name="lowerarm" type="fixed">
+        <parent link="lowerarm"/>
+        <child  link="wristmotor"/>
+        <origin xyz="0 0 0.3411" rpy="0 0 0"/>		  <!-- LOWER ARM DIMENIONS -->
+    </joint>
+
+    <!-- Tip motor.  Thickness: X5 = 31.1mm, X8 = 45.1mm -->
+    <link name="wristmotor">
+        <visual>
+            <origin xyz="0 0.0067 0" rpy = "-1.5708 -1.5708 0"/>
+            <geometry>
+                <mesh filename="package://pb_utils/meshes/X5.stl"
+	      scale="0.001 0.001 0.001"/>
+            </geometry>
+            <material name="hebi"/>
+        </visual>
+    </link>
+
+    <joint name="tip" type="continuous">
+        <parent link="wristmotor"/>
+        <child link="wristbracket"/>
+        <origin xyz="0 0.035 0" rpy="0 -1.5708 0"/>
+        <axis xyz="0 1 0"/>
+    </joint>
+
+    <link name="wristbracket">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="package://pb_utils/meshes/End_Bracket_V2.STL"
+                            scale="0.001 0.001 0.001"/>
+            </geometry>
+            <material name="plastic"/>
+        </visual>
+    </link>
+
+    <joint name="wristbracketout" type="fixed">
+        <parent link="wristbracket"/>
+        <child link="tipmotor"/>
+        <origin xyz="0 0.055 -0.021" rpy="0 0 0"/>
+    </joint>
+
+    <link name="tipmotor">
+        <visual>
+            <origin xyz="0 0 0" rpy = "0 0 -1.5708"/>
+            <geometry>
+                <mesh filename="package://pb_utils/meshes/X5.stl"
+	      scale="0.001 0.001 0.001"/>
+            </geometry>
+            <material name="hebi"/>
+        </visual>
+    </link>
+
+    <joint name="tipturn" type="continuous">
+        <parent link="tipmotor"/>
+        <child link="cup"/>
+        <origin xyz="0 0 0.0311" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>
+    </joint>
+
+    <link name="cup">
+        <visual>
+            <origin xyz="0 0 0.0039" rpy="-1.5708 0 0"/>
+                <geometry>
+                    <mesh filename="package://pb_utils/meshes/Vacuum_Cup_Holder_V2.STL"
+                                scale="0.001 0.001 0.001"/>
+                </geometry>
+            <material name="plastic"/>
+        </visual>
+    </link>
+
+    <joint name="shifttoend" type="fixed">
+      <parent link="cup"/>
+      <child link="end"/>
+      <origin xyz="0 0 0.037858" rpy="0 0 0"/>
+    </joint>
+
+    <link name="end"/>
+
+    <!-- VISUAL LINK ELEMENTS -->
+
+    <material name="metal"> <color rgba=".89 .89 .89 1"/> </material>
+    <material name="hebi">  <color rgba="0.82 0.06 0.06 1"/>  </material>
+    <material name="plastic"> <color rgba="0.2 0.2 0.2 1"/> </material>
+
+</robot>

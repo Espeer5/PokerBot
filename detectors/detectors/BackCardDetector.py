@@ -19,8 +19,8 @@ import cv_bridge
 from rclpy.node         import Node
 from sensor_msgs.msg    import Image
 from geometry_msgs.msg  import Point, Pose
-from utilities.mapping_utilities import pixelToWorld
-from utilities.card_utilities import *
+from detectors.utilities.mapping_utilities import pixelToWorld
+from detectors.utilities.card_utilities import *
 
 
 MINAREA = 1000
@@ -45,6 +45,9 @@ class BackCardDetectorNode(Node):
 
         # Set up the OpenCV bridge.
         self.bridge = cv_bridge.CvBridge()
+
+        # Load descriptors
+        load_descriptors_from_json()
 
         # Finally, subscribe to the incoming image topic.  Using a
         # queue size of one means only the most recent message is
@@ -76,25 +79,21 @@ class BackCardDetectorNode(Node):
         card_contours = find_cards(processed_image)
 
         for contour in card_contours:
-            card_image = extract_card_from_image(contour)
-            # cv2.imwrite(img_path+filename,final_img)
+            card_image = extract_card_from_image(frame, contour)
+            if len(card_image) > 0:
+                card_image = cv2.cvtColor(card_image, cv2.COLOR_BGR2GRAY)
 
-            if is_back_of_card(card_image):
-                
-                (x, y), _, _ = cv2.minAreaRect(contour)
+                if is_back_of_card(card_image):
+                    self.get_logger().info("back of card")
+                    
+                    (x, y), _, _ = cv2.minAreaRect(contour)
 
-                world_loc = pixelToWorld(frame, round(x), round(y), 0, 0.4)
+                    world_loc = pixelToWorld(frame, round(x), round(y), 0, 0.34)
+                    self.get_logger().info(world_loc)
 
-                # And publish the centroid of the puck
-                if world_loc is not None:
-                    if world_loc[1] < 0.4:
-                        world_loc[1] += 0.4
-                    else:
-                        world_loc[1] -= 0.4
-
-                    world_loc[0] *= -1
-
-                    self.locpub.publish(Point(x=float(world_loc[0]), y=float(world_loc[1]), z=float(0.01)))
+                    # And publish the centroid of the puck
+                    if world_loc is not None:
+                        self.locpub.publish(Point(x=float(world_loc[0]), y=float(world_loc[1]), z=float(0.01)))
 
         # Convert the frame back into a ROS image and republish.
         cv2.drawContours(frame, card_contours, -1, self.BLUE, 2)

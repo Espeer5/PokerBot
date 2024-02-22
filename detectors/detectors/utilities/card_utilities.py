@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import json
 
 
 # Adaptive threshold levels
@@ -8,10 +9,11 @@ CARD_THRESH = 30
 
 # Card Area Bounds
 CARD_MAX_AREA = 20000
-CARD_MIN_AREA = 2000
+CARD_MIN_AREA = 1000
 
 # Style
 FONT = cv2.FONT_HERSHEY_SIMPLEX
+BACK_OF_CARD_DESCRIPTORS = np.array([])
 
 
 # class QueryCard:
@@ -51,8 +53,9 @@ def preprocess_image(image):
     # A background pixel in the center top of the image is sampled to determine
     # its intensity. The adaptive threshold is set at 50 (THRESH_ADDER) higher
     # than that. This allows the threshold to adapt to the lighting conditions.
-    img_w, img_h = np.shape(image)[:2]
-    bkg_level = gray[int(img_w/2)][int(img_h * 8/10)]
+    # img_w, img_h = np.shape(image)[:2]
+    # bkg_level = gray[img_w // 2][img_h // 2]
+    bkg_level = 85
     thresh_level = bkg_level + BKG_THRESH
 
     retval, thresh = cv2.threshold(blur,thresh_level,255,cv2.THRESH_BINARY)
@@ -73,12 +76,13 @@ def find_cards(thresh_image):
 
         PARENT = 3
         NO_PARENT = -1
+        # print(hierarchy[PARENT])
         return size < CARD_MAX_AREA and size > CARD_MIN_AREA and hierarchy[PARENT] == NO_PARENT and num_corners == 4
 
-    card_contours = [contour for contour, hierarchy in zip(contours, hierarchies) if is_contour_a_card(contour, hierarchy)]
+    card_contours = [contour for contour, hierarchy in zip(contours, hierarchies[0]) if is_contour_a_card(contour, hierarchy)]
     card_contours.sort(key=cv2.contourArea, reverse=True)
 
-    return np.array(card_contours)
+    return card_contours
 
 
 def extract_card_from_image(image, contour):
@@ -105,8 +109,9 @@ def extract_card_from_image(image, contour):
 
     image = image[y:y+h, x:x+w]
 
-    image = cv2.resize(image, (200, 300),
-               interpolation = cv2.INTER_LINEAR)
+    if len(image) > 0:
+        image = cv2.resize(image, (200, 300),
+                interpolation = cv2.INTER_LINEAR)
 
     return image
 
@@ -153,7 +158,20 @@ def identify_card(card_image):
 
 
 def is_back_of_card(card_image):
-    pass
+    ORB = cv2.ORB_create(fastThreshold=0, edgeThreshold=0)
+    BF = cv2.BFMatcher_create(cv2.NORM_HAMMING,crossCheck=True)
+
+    _, descriptors1 = ORB.detectAndCompute(card_image, None)
+
+    matches = BF.match(descriptors1, BACK_OF_CARD_DESCRIPTORS)
+    return len(matches) >= 140
+
+
+def load_descriptors_from_json():
+    global BACK_OF_CARD_DESCRIPTORS
+    json_file = open("src/PokerBot/detectors/detectors/references/card_features/Back_of_Card.json", "r")
+    BACK_OF_CARD_DESCRIPTORS = np.array(json.load(json_file), dtype=object).astype('uint8')
+    json_file.close()
 
 
 def load_cards():
