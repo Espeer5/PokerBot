@@ -15,6 +15,7 @@ from launch.actions import Shutdown
 import launch_ros.actions
 
 from utils.KinematicChain import KinematicChain
+from utils.pump_util import send_pwm
 
 # JOINTS AND MOTORS
 # A list of the joint names as listed in the URDF file, and the corresponding
@@ -38,9 +39,19 @@ SIM_T = 10 # simulated time for finding joint angles (greater -> more precise)
 # elbow joints. The tip and tipturn joints are not affected greatly by gravity.
 
 A_EL = 0.0 # Elbow sin coefficient
-B_EL = -2.95 # Elbow cos coefficient
+B_EL = -2.875 # Elbow cos coefficient
 A_SH = 0.5 # Shoulder sin coefficient
-B_SH = 6.7 # Shoulder cos coefficient
+B_SH = 6.5 # Shoulder cos coefficient
+
+# ACTION MAP
+# Maps strings of actions to functions which execute those actions on the vacuum 
+# gripper.
+ACTION_MAP = {
+    "GB_CARD": lambda: send_pwm(170),
+    "GB_CHIP": lambda: send_pwm(220),
+    "DROP": lambda: send_pwm(0),
+    "NONE": lambda: None
+}
 
 # NODE CONSTANTS
 
@@ -195,3 +206,28 @@ NODE_HEBI = launch_ros.actions.Node(
                   {'motors':   MOTORS},
                   {'joints':   JOINTS}],
     on_exit    = Shutdown())
+
+# Camera setup node
+NODE_USBCAM = launch_ros.actions.Node(
+    name       = 'usb_cam', 
+    package    = 'usb_cam',
+    executable = 'usb_cam_node_exe',
+    namespace  = 'usb_cam',
+    output     = 'screen',
+    parameters = [{'camera_name':         'logitech'},
+                    {'video_device':        '/dev/video0'},
+                    {'pixel_format':        'yuyv2rgb'},
+                    {'image_width':         800},
+                    {'image_height':        600},
+                    {'framerate':           15.0},
+                    {'brightness':          -1},
+                    {'contrast':            -1},
+                    {'saturation':          -1},
+                    {'sharpness':           -1},
+                    {'gain':                30},
+                    {'auto_white_balance':  False},
+                    {'white_balance':       3200},
+                    {'autoexposure':        False},
+                    {'exposure':            250},
+                    {'autofocus':           True},
+                    {'focus':               -1}])

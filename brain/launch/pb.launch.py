@@ -7,7 +7,7 @@ collaborate to plan and execute the robot's actions.
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
-from utils.constants import ACTUAL_RSP, NODE_HEBI, NODE_RVIZ
+from utils.constants import ACTUAL_RSP, NODE_HEBI, NODE_RVIZ, NODE_USBCAM
 
 def generate_launch_description():
     """
@@ -20,7 +20,7 @@ def generate_launch_description():
     brain = Node(
         name       = 'brain', 
         package    = 'brain',
-        executable = 'brain',
+        executable = 'collect', # Or 'brain'
         output     = 'screen')
 
     # Configure the node which publishes the torques to the robot.
@@ -29,11 +29,21 @@ def generate_launch_description():
         package    = 'trajectory',
         executable = 'obey',
         output     = 'screen')
+    
+    # Configure the BackCardDetector
+    BackCardDetectorNode = Node(
+        name       = 'BackCardDetector', 
+        package    = 'detectors',
+        executable = 'BackCardDetector',
+        output     = 'screen',
+        remappings = [('/image_raw', '/usb_cam/image_raw')])
 
     # Prepare the list of elements to launch
     
     # Return the description, built as a python list.
     return LaunchDescription([
+        NODE_USBCAM,
+        BackCardDetectorNode,
         ACTUAL_RSP,
         # NODE_RVIZ,
         NODE_HEBI,

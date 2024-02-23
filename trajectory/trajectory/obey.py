@@ -9,6 +9,7 @@ import numpy as np
 import rclpy
 
 from sensor_msgs.msg import JointState
+from std_msgs.msg import String
 from utils.constants import CONTROL_NODE, GET_CHAIN, nan
 from trajectory.spline_q import JointSplineQueue
 
@@ -35,18 +36,29 @@ class Trajectory():
         self.goal_joints = None
         self.q = q0
         self.suction = True
+        self.pubbed = False
 
-    def evaluate(self, t, dt):
+    def evaluate(self, t, _):
         """
         Return the appropriate joint positions and velocities at the given time
         based on the trajectories in the queue.
         """
+        if t < 4.0:
+            self.queue.t0 = t
+            self.q = np.array(self.node.actpos).reshape(5, 1)
+            return [nan, nan, nan, nan, nan], [nan, nan, nan, nan, nan]
         q, qdot = self.queue.evaluate(t)
         if q is not None:
+            self.q = q
             return q.flatten().tolist(), qdot.flatten().tolist()
-        # If no queued trajectory spline, simply float in place
+        # If no queued trajectory spline, simply remain in place
         else:
-            return [nan, nan, nan, nan, nan], [nan, nan, nan, nan, nan]
+            # Notify the detector to look for a new card
+            if not self.pubbed:
+                self.node.get_logger().info("sending detect")
+                self.node.detect_pub.publish(String(data="detect"))
+                self.pubbed = True
+            return self.q.flatten().tolist(), [0.0, 0.0, 0.0, 0.0, 0.0]
     
 
 class ControlNode(CONTROL_NODE):
@@ -56,16 +68,20 @@ class ControlNode(CONTROL_NODE):
     trajectory class to generate the appropriate intermediary joint positions
     and velocities to navigate from the current positions to the goal positions
     """
-    def __init__(self):
+    def __init__(self, name):
         """
         Initialize the control node.
         """
-        super().__init__("control_node")
+        super().__init__(name)
         self.traj = Trajectory(self, self.actpos)
 
-        # Create a subscriber for goal messages
+        # Create a subscriber for goal messages, but do not begin listeining yet
         self.goal_sub = self.create_subscription(JointState, '/goal', self.cb_goal,
                                                  10)
+        self.detect_pub = self.create_publisher(String, '/detect_now', 3)
+        # Wait for the detector to sub to the detect_now topic
+        while self.detect_pub.get_subscription_count() == 0:
+            pass
     
     def cb_goal(self, msg):
         """
@@ -78,15 +94,17 @@ class ControlNode(CONTROL_NODE):
         joint_vel = np.array(msg.velocity).reshape(5, 1)
         # Slightly hacky way to do this, but oh well
         T = msg.effort[0]
+        self.traj.pubbed = False
         
         if self.traj.queue.empty():
             self.traj.queue.enqueue(np.array(self.actpos).reshape(5, 1),
-                                    joint_pos, np.zeros((5, 1)), joint_vel, T)
+                                    joint_pos, np.zeros((5, 1)), joint_vel, T,
+                                    endAction=msg.name[0])
             self.traj.queue.t0 = self.t
         else:
             prev_goal = self.traj.queue.peek_back()
             self.traj.queue.enqueue(prev_goal.qf, joint_pos, prev_goal.qdotf,
-                                    joint_vel, T)
+                                    joint_vel, T, endAction=msg.name[0])
 
 
 def main(args=None):
@@ -97,7 +115,7 @@ def main(args=None):
     rclpy.init(args=args)
 
     # Create the control node.
-    node = ControlNode()
+    node = ControlNode('controller')
 
     # Spin the node so the callback function is called.
     rclpy.spin(node)

@@ -19,8 +19,12 @@ import cv_bridge
 from rclpy.node         import Node
 from sensor_msgs.msg    import Image
 from geometry_msgs.msg  import Point, Pose
+from std_msgs.msg       import String
 from detectors.utilities.mapping_utilities import pixelToWorld
 from detectors.utilities.card_utilities import *
+from detectors.message_types.BackOfCardMessage import BackOfCardMessage
+from detectors.message_types.CardPose import CardPose
+from utils.TransformHelpers import *
 
 
 MINAREA = 1000
@@ -40,11 +44,12 @@ class BackCardDetectorNode(Node):
         # Store up to three images, just in case.
         self.pubrgb = self.create_publisher(Image, name+'/image_raw', 3)
         # self.pubbin = self.create_publisher(Image, name+'/binary',    3)
-        self.locpub = self.create_publisher(Point, '/point',     3)
+        self.locpub = self.create_publisher(String, '/BackOfCard',     3)
         # self.locpubpose = self.create_publisher(Pose, '/pose',     3)
 
         # Set up the OpenCV bridge.
         self.bridge = cv_bridge.CvBridge()
+        self.detect = False
 
         # Load descriptors
         load_descriptors_from_json()
@@ -53,7 +58,10 @@ class BackCardDetectorNode(Node):
         # queue size of one means only the most recent message is
         # stored for the next subscriber callback.
         self.sub = self.create_subscription(
-            Image, '/image_raw', self.process, 1)
+                    Image, '/image_raw', self.process, 1)
+        
+        self.detect_sub = self.create_subscription(
+            String, '/detect_now', self.receive_msg, 1)
 
         # Report.
         self.get_logger().info("BackCardDetector running...")
@@ -63,6 +71,10 @@ class BackCardDetectorNode(Node):
         # No particular cleanup, just shut down the node.
         self.destroy_node()
 
+    def receive_msg(self, msg):
+        if msg.data == "detect":
+            self.get_logger().info("Detect message received")
+            self.detect = True
 
     # Process the image (detect the ball).
     def process(self, msg):
@@ -75,29 +87,48 @@ class BackCardDetectorNode(Node):
         # Convert into OpenCV image, using RGB 8-bit (pass-through).
         frame = self.bridge.imgmsg_to_cv2(msg, "passthrough")
 
-        processed_image = preprocess_image(frame)
-        card_contours = find_cards(processed_image)
+        
+        if self.detect:
+            processed_image = preprocess_image(frame)
+            card_contours = find_cards(processed_image)
 
-        for contour in card_contours:
-            card_image = extract_card_from_image(frame, contour)
-            if len(card_image) > 0:
-                card_image = cv2.cvtColor(card_image, cv2.COLOR_BGR2GRAY)
+            card_poses = set()
+            for contour in card_contours:
+                card_image = extract_card_from_image(frame, contour)
+                if len(card_image) > 0:
+                    card_image = cv2.cvtColor(card_image, cv2.COLOR_BGR2GRAY)
 
-                if is_back_of_card(card_image):
-                    self.get_logger().info("back of card")
-                    
-                    (x, y), _, _ = cv2.minAreaRect(contour)
+                    if is_back_of_card(card_image):
+                        (x, y), (w, h), alpha = cv2.minAreaRect(contour)
 
-                    world_loc = pixelToWorld(frame, round(x), round(y), 0, 0.34)
-                    self.get_logger().info(world_loc)
+                        if h/w < 1:
+                            alpha += 90
 
-                    # And publish the centroid of the puck
-                    if world_loc is not None:
-                        self.locpub.publish(Point(x=float(world_loc[0]), y=float(world_loc[1]), z=float(0.01)))
+                        alpha = np.radians(alpha)
 
-        # Convert the frame back into a ROS image and republish.
-        cv2.drawContours(frame, card_contours, -1, self.BLUE, 2)
+                        world_loc = pixelToWorld(frame, round(x), round(y), 0.0, 0.34)
+
+                        if world_loc is not None:
+                            # self.get_logger().info(f"{x}, {y}")
+                            # self.get_logger().info(f"{world_loc[0]}, {world_loc[1]}")
+                            # position = Point(x=float(world_loc[0]), y=float(world_loc[1]), z=float(0.01))
+                            # orientation = Quaternion_from_R(Rotz(alpha))
+                            # pose = Pose(position=position, orientation=orientation)
+                            pose = CardPose((float(world_loc[0]), float(world_loc[1]), float(-0.01)), alpha)
+                            card_poses.add(pose)
+            
+            # Publish
+            if len(card_poses) > 0:
+                msg_object = BackOfCardMessage(card_poses)
+                self.locpub.publish(String(data=msg_object.to_string()))
+                self.detect = False
+
+            # Convert the frame back into a ROS image and republish.
+            cv2.drawContours(frame, card_contours, -1, self.BLUE, 2)
+            
+
         self.pubrgb.publish(self.bridge.cv2_to_imgmsg(frame, "rgb8"))
+            
 
 
 #

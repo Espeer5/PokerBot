@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import json
+from ament_index_python.packages import get_package_share_directory as pkgdir
 
 
 # Adaptive threshold levels
@@ -169,7 +170,7 @@ def is_back_of_card(card_image):
 
 def load_descriptors_from_json():
     global BACK_OF_CARD_DESCRIPTORS
-    json_file = open("src/PokerBot/detectors/detectors/references/card_features/Back_of_Card.json", "r")
+    json_file = open(f"{pkgdir('detectors')}/card_features/Back_of_Card.json", "r")
     BACK_OF_CARD_DESCRIPTORS = np.array(json.load(json_file), dtype=object).astype('uint8')
     json_file.close()
 

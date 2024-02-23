@@ -12,7 +12,7 @@ from utils.TransformHelpers   import *
 from utils.TrajectoryUtils      import *
 from utils.constants import LAMBDA, SIM_T
 
-def find_joints(chain: KinematicChain, goalp: np.ndarray,
+def find_joints(chain: KinematicChain, goalp: np.ndarray, 
                 goal_th: float) -> np.ndarray:
     """
     Iteratively solve fkin using the Jacobian until the desired position is

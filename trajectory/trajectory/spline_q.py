@@ -4,12 +4,15 @@ as a queue of joint splines. These are used by the Control node to receive goal
 commands from the brain node and generate and follow the appropriate joint 
 trajectories to reach the goal commands. The joint splines are used to generate
 the joint positions and velocities at each time step to reach the goal commands
-with the appropriate final velocity.
+with the appropriate final velocity. Each joint spline may also have an end
+action to be executed at the completion of the spline, where each possible action 
+is mapped to a function by the actionMap dictionary from constants.
 """
 
 import numpy as np
 
 from utils.TrajectoryUtils import spline5
+from utils.constants import ACTION_MAP
 
 
 class JointSpline():
@@ -20,12 +23,13 @@ class JointSpline():
     and velocities. The spline is generated with a time duration set by the 
     brain node such that the brain can control the maximum velocity of the robot
     """
-    def __init__(self, q0, qf, qdot0, qdotf, T):
+    def __init__(self, q0, qf, qdot0, qdotf, T, endAction=None):
         self.q0 = q0
         self.qf = qf
         self.qdot0 = qdot0
         self.qdotf = qdotf
         self.T = T
+        self.endAction = endAction
 
     def evaluate(self, t):
         """
@@ -37,9 +41,10 @@ class JointSpline():
         
     def complete(self, t):
         """
-        Return True if the spline has been completed, and False otherwise.
+        Return True if the spline has been completed, and False otherwise. Also
+        return the end action to be taken if the spline is completed.
         """
-        return t >= self.T
+        return (t >= self.T, self.endAction)
 
 
 class JointSplineQueue():
@@ -54,12 +59,12 @@ class JointSplineQueue():
         self.t0 = 0
         self.splines = []
 
-    def enqueue(self, q0, qf, qdot0, qdotf, T):
+    def enqueue(self, q0, qf, qdot0, qdotf, T, endAction=None):
         """
         Add a joint spline to the queue with the given initial and final joint
         positions, initial and final joint velocities, and time duration.
         """
-        self.splines.append(JointSpline(q0, qf, qdot0, qdotf, T))
+        self.splines.append(JointSpline(q0, qf, qdot0, qdotf, T, endAction))
     
     def dequeue(self):
         """
@@ -80,9 +85,13 @@ class JointSplineQueue():
         of that spline will be the current time.
         """
         if len(self.splines) > 0:
-            if self.splines[0].complete(t - self.t0):
+            completion, action = self.splines[0].complete(t - self.t0)
+            if completion:
                 self.dequeue()
                 self.t0 = t
+                # Execute the end action of the completed spline
+                if action is not None:
+                    ACTION_MAP[action]()
                 # In this case, we need to recheck if the queue is now empty
                 return self.evaluate(t)
             return self.splines[0].evaluate(t - self.t0)

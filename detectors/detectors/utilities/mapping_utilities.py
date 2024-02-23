@@ -41,7 +41,7 @@ def pixelToWorld(image, u, v, x0, y0, annotateImage=True):
         uvMarkers[markerIds[i]-1,:] = np.mean(markerCorners[i], axis=1)
 
     # Calculate the matching World coordinates of the 4 Aruco markers.
-    DX = 0.25
+    DX = 0.5
     DY = 0.315
     xyMarkers = np.float32([[x0+dx, y0+dy] for (dx, dy) in
                             [(-DX, DY), (DX, DY), (-DX, -DY), (DX, -DY)]])
