@@ -14,6 +14,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from utils.find_joints import find_joints
 from utils.constants import GET_CHAIN
+from brain.game import Game
 
 
 class BrainNode(Node):
@@ -84,10 +85,12 @@ def main(args=None):
     # Create the brain node.
     node = BrainNode('brain')
 
-    # Send a goal to the control node.
-    for _ in range(8):
-        node.act_at(node.goal1, 0.0, 'GB_CARD')
-        node.act_at(node.goal2, 0.0, 'DROP')
+    # # Send a goal to the control node.
+    # for _ in range(8):
+    #     node.act_at(node.goal1, 0.0, 'GB_CARD')
+    #     node.act_at(node.goal2, 0.0, 'DROP')
+    game = Game()
+    game.run()
 
     # Spin the node so the callback function is called.
     rclpy.spin(node)

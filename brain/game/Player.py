@@ -1,7 +1,6 @@
 class Player():
 
-    def __init__(self):
-        self.chips = self.detect_chips()
-        self.card_location = None
-
-    # def detect_chips(self):
+    def __init__(self, chip_box, card_box):
+        self.chip_box = chip_box
+        self.card_box = card_box
+        self.cards = []
