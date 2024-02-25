@@ -54,10 +54,10 @@ class Trajectory():
         # If no queued trajectory spline, simply remain in place
         else:
             # Notify the detector to look for a new card
-            if not self.pubbed:
-                self.node.get_logger().info("sending detect")
-                self.node.detect_pub.publish(String(data="detect"))
-                self.pubbed = True
+            # if not self.pubbed:
+            #     self.node.get_logger().info("sending detect")
+            #     self.node.detect_pub.publish(String(data="detect"))
+            #     self.pubbed = True
             return self.q.flatten().tolist(), [0.0, 0.0, 0.0, 0.0, 0.0]
     
 
@@ -79,10 +79,10 @@ class ControlNode(CONTROL_NODE):
         # Create a subscriber for goal messages, but do not begin listeining yet
         self.goal_sub = self.create_subscription(JointState, '/goal', self.cb_goal,
                                                  10)
-        self.detect_pub = self.create_publisher(String, '/detect_now', 3)
-        # Wait for the detector to sub to the detect_now topic
-        while self.detect_pub.get_subscription_count() == 0:
-            pass
+        # self.detect_pub = self.create_publisher(String, '/detect_now', 3)
+        # # Wait for the detector to sub to the detect_now topic
+        # while self.detect_pub.get_subscription_count() == 0:
+        #     pass
     
     def cb_goal(self, msg):
         """

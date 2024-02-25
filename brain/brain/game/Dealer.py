@@ -2,7 +2,7 @@ import numpy as np
 
 
 class Dealer():
-    DECK_LOCATION = np.array([-0.28, 0.30, 0.0]).reshape(3, 1)
+    DECK_LOCATION = np.array([-0.28, 0.30, 0.0175]).reshape(3, 1)
     CARD_SIZE = (0.06, 0.09)
 
     def __init__(self, node, active_players, dealer_idx):
@@ -16,7 +16,7 @@ class Dealer():
         h = y1 - y0
 
         if w < h:
-            theta = 90
+            theta = np.radians(90)
 
             total_vert_gap_size = h - 2 * self.CARD_SIZE[0]
             vert_gap_size = total_vert_gap_size / 3

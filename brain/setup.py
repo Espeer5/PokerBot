@@ -24,7 +24,6 @@ setup(
         'console_scripts': [
             'brain = brain.brain:main',
             'collect = brain.collect:main',
-            'obey = trajectory.obey:main'
         ],
     },
 )

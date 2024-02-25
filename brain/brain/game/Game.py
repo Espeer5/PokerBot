@@ -5,8 +5,13 @@ from brain.game.Showdown import Showdown
 from brain.game.Payout import Payout
 from brain.game.Player import Player
 
+
 # for testing purposes
-PLAYERS = [Player(None, [(-55.5, 38), (-44, 53)])]
+PLAYERS = [Player(None, [(-0.555, 0.38), (-0.44, 0.53)]),
+           Player(None, [(-0.22, 0.63), (-0.05, 0.74)]),
+           Player(None, [(0.19, 0.63), (0.35, 0.74)]),
+           Player(None, [(0.44, 0.21), (0.56, 0.37)]),
+           Player(None, [(0.235, 0.045), (0.395, 0.16)])]
 
 
 class Game():
