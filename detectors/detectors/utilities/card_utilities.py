@@ -77,7 +77,6 @@ def find_cards(thresh_image):
 
         PARENT = 3
         NO_PARENT = -1
-        # print(hierarchy[PARENT])
         return size < CARD_MAX_AREA and size > CARD_MIN_AREA and hierarchy[PARENT] == NO_PARENT and num_corners == 4
 
     card_contours = [contour for contour, hierarchy in zip(contours, hierarchies[0]) if is_contour_a_card(contour, hierarchy)]

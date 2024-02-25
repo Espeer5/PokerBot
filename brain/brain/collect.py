@@ -57,6 +57,8 @@ def main(args=None):
     # Create the brain node.
     node = CollectBrain('collector')
 
+    node.get_logger().info("collector main")
+
     # Spin the node so the callback function is called.
     rclpy.spin(node)
 

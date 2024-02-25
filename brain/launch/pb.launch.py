@@ -20,7 +20,8 @@ def generate_launch_description():
     brain = Node(
         name       = 'brain', 
         package    = 'brain',
-        executable = 'collect', # Or 'brain'
+        # executable = 'collect', # Or 'brain'
+        executable = 'brain',
         output     = 'screen')
 
     # Configure the node which publishes the torques to the robot.
@@ -43,7 +44,7 @@ def generate_launch_description():
     # Return the description, built as a python list.
     return LaunchDescription([
         NODE_USBCAM,
-        BackCardDetectorNode,
+        # BackCardDetectorNode,
         ACTUAL_RSP,
         # NODE_RVIZ,
         NODE_HEBI,

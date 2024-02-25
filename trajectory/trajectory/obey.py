@@ -73,6 +73,7 @@ class ControlNode(CONTROL_NODE):
         Initialize the control node.
         """
         super().__init__(name)
+        self.get_logger().info("ControlNode()")
         self.traj = Trajectory(self, self.actpos)
 
         # Create a subscriber for goal messages, but do not begin listeining yet
@@ -116,6 +117,7 @@ def main(args=None):
 
     # Create the control node.
     node = ControlNode('controller')
+    node.get_logger().info("Control node is running")
 
     # Spin the node so the callback function is called.
     rclpy.spin(node)

@@ -14,7 +14,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from utils.find_joints import find_joints
 from utils.constants import GET_CHAIN
-from brain.game import Game
+from brain.game.Game import Game
 
 
 class BrainNode(Node):
@@ -48,6 +48,8 @@ class BrainNode(Node):
         Send a goal to the control node to move to the given joint position q at
         the given velocity qdot over the given time duration T.
         """
+        # self.get_logger().info(f"send_goal({q}, {qdot}, {T}, {type_str})")
+        self.get_logger().info("message sent")
         self.cmdmsg.header.stamp = self.get_clock().now().to_msg()
         self.cmdmsg.name = (type_str,)
         self.cmdmsg.position = q.flatten().tolist()
@@ -60,6 +62,7 @@ class BrainNode(Node):
         Send a sequence of commands to the control node to grab a card at the
         goal position with the given goal orientation of the end affector.
         """
+        self.get_logger().info(f"act_at({goalpos}, {goal_th}, {type_str})")
         q_raised = find_joints(self.chain,
                                goalpos + np.array([0.0, 0.0, 0.05]).reshape(3, 1),
                                goal_th)
@@ -89,9 +92,10 @@ def main(args=None):
     # for _ in range(8):
     #     node.act_at(node.goal1, 0.0, 'GB_CARD')
     #     node.act_at(node.goal2, 0.0, 'DROP')
-    game = Game()
+    node.get_logger().info("new Game()")
+    game = Game(node)
     game.run()
-
+    node.get_logger().info("exit game.run()")
     # Spin the node so the callback function is called.
     rclpy.spin(node)
 

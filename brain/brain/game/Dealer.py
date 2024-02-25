@@ -2,10 +2,11 @@ import numpy as np
 
 
 class Dealer():
-    DECK_LOCATION = (0.28, 0.30, 0.0)
+    DECK_LOCATION = np.array([-0.28, 0.30, 0.0]).reshape(3, 1)
     CARD_SIZE = (0.06, 0.09)
 
-    def __init__(self, active_players, dealer_idx):
+    def __init__(self, node, active_players, dealer_idx):
+        self.node = node
         self.players = active_players
         self.dealer_index = dealer_idx
 
@@ -29,7 +30,9 @@ class Dealer():
             card2x = card1x
             card2y = y1 - vert_gap_size - (self.CARD_SIZE[0] / 2)
 
-            return np.array([card1x, card1y, 0.0]), np.array([card2x, card2y, 0.0]), theta
+            coords1 = np.array([card1x, card1y, 0.0]).reshape(3, 1)
+            coords2 = np.array([card2x, card2y, 0.0]).reshape(3, 1)
+            return coords1, coords2, theta
 
         else:
             theta = 0
@@ -46,7 +49,9 @@ class Dealer():
             card2x = x1 - horizontal_gap_size - (self.CARD_SIZE[0] / 2)
             card2y = card1y
 
-            return np.array([card1x, card1y, 0.0]), np.array([card2x, card2y, 0.0]), theta
+            coords1 = np.array([card1x, card1y, 0.0]).reshape(3, 1)
+            coords2 = np.array([card2x, card2y, 0.0]).reshape(3, 1)
+            return coords1, coords2, theta
 
 
     def run(self):
@@ -57,8 +62,8 @@ class Dealer():
             
             card1coords, card2coords, theta = self.get_card_locations_from_card_box(curr_player.card_box)
 
-            self.act_at(self.DECK_LOCATION, 0, "GB_CARD")
-            self.act_at(card1coords, theta, "DROP")
+            self.node.act_at(self.DECK_LOCATION, 0, "GB_CARD")
+            self.node.act_at(card1coords, theta, "DROP")
 
-            self.act_at(self.DECK_LOCATION, 0, "GB_CARD")
-            self.act_at(card2coords, theta, "DROP")
+            self.node.act_at(self.DECK_LOCATION, 0, "GB_CARD")
+            self.node.act_at(card2coords, theta, "DROP")

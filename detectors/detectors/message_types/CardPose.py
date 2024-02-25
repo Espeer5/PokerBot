@@ -12,6 +12,5 @@ class CardPose():
     
     @staticmethod
     def from_string(str):
-        print(str)
         x, y, z, theta = json.loads(str)
         return CardPose((x, y, z), theta)

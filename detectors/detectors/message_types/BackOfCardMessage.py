@@ -15,7 +15,6 @@ class BackOfCardMessage():
     
     @staticmethod
     def from_string(str):
-        print("BOCM from_string str=", str)
         str_poses = json.loads(str)
 
         poses = []
