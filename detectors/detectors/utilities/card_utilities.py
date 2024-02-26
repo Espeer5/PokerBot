@@ -37,8 +37,6 @@ class ReferenceFeatures:
         self.name = name
         self.features = features
 
-
-# NEEDS TO BE REVIEWED (CANNOT TRUST ORIGINAL AUTHOR)
 def preprocess_image(image):
     """Returns a grayed, blurred, and adaptively thresholded camera image."""
 
@@ -80,7 +78,7 @@ def find_cards(thresh_image):
         return size < CARD_MAX_AREA and size > CARD_MIN_AREA and hierarchy[PARENT] == NO_PARENT and num_corners == 4
 
     card_contours = [contour for contour, hierarchy in zip(contours, hierarchies[0]) if is_contour_a_card(contour, hierarchy)]
-    card_contours.sort(key=cv2.contourArea, reverse=True)
+    # card_contours.sort(key=cv2.contourArea, reverse=True)
 
     return card_contours
 

@@ -58,6 +58,14 @@ def generate_launch_description():
         output     = 'screen',
         remappings = [('/image_raw', '/usb_cam/image_raw')])
     
+    # Configure the BackCardDetector
+    ChipDetectorNode = Node(
+        name       = 'ChipDetector', 
+        package    = 'detectors',
+        executable = 'ChipDetector',
+        output     = 'screen',
+        remappings = [('/image_raw', '/usb_cam/image_raw')])
+    
     # CardDetectorNode = Node(
     #     name       = 'CardDetector', 
     #     package    = 'detectors',
@@ -80,7 +88,7 @@ def generate_launch_description():
     return LaunchDescription([
         # Start the nodes.
         USBCamNode,
-        BackCardDetectorNode,
+        # BackCardDetectorNode,
         # CardDetectorNode,
-        # ChipDetectorNode
+        ChipDetectorNode
     ])

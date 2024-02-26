@@ -13,7 +13,7 @@ from utils.TrajectoryUtils      import *
 from utils.constants import LAMBDA, SIM_T
 
 def find_joints(chain: KinematicChain, goalp: np.ndarray, 
-                goal_th: float) -> np.ndarray:
+                goal_th: float, goal_phi: float = 0.0) -> np.ndarray:
     """
     Iteratively solve fkin using the Jacobian until the desired position is
     reached. The theta for the angle of the end affector to the table surface is 
@@ -30,7 +30,7 @@ def find_joints(chain: KinematicChain, goalp: np.ndarray,
     # Initialize the starting position
     p, _, Jv, _ = chain.fkin(q)
     initialp = p
-    initial_th = q[1] - q[2] + q[3]
+    initial_phi = q[1] - q[2] + q[3]
     # Create fake spline timing
     t = 0
     dt = 0.1
@@ -41,10 +41,10 @@ def find_joints(chain: KinematicChain, goalp: np.ndarray,
         path_p, path_v = goto5(t, SIM_T, 0, 1)
         pd = initialp + path_p * (goalp - initialp)
         vd = path_v * (goalp - initialp) / SIM_T
-        th_d = initial_th + path_p * (-initial_th)
+        phi_d = initial_phi + path_p * (goal_phi - initial_phi)
         # Compute the errors
         epd = ep(pd, p)
-        eth = th_d - (q[1] - q[2] + q[3])
+        eth = phi_d - (q[1] - q[2] + q[3])
         e_s = np.vstack((epd, eth))
         J = np.vstack((Jv, np.array([0, 1, -1, 1, 0])))
         v_s = np.vstack((vd, eth))

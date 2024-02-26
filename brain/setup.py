@@ -24,6 +24,7 @@ setup(
         'console_scripts': [
             'brain = brain.brain:main',
             'collect = brain.collect:main',
+            'flip_tune = brain.flip_tune:main',
         ],
     },
 )

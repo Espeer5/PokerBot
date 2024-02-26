@@ -9,11 +9,12 @@ from the previous goal position.
 
 import rclpy
 import numpy as np
+from math import cos, sin
 
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from utils.find_joints import find_joints
-from utils.constants import GET_CHAIN
+from utils.constants import GET_CHAIN, FLIP_PHI
 from brain.game.Game import Game
 
 
@@ -59,16 +60,18 @@ class BrainNode(Node):
 
     def act_at(self, goalpos, goal_th, type_str):
         """
-        Send a sequence of commands to the control node to grab a card at the
+        Send a sequence of commands to the control node to grab/drop a card at the
         goal position with the given goal orientation of the end affector.
         """
         self.get_logger().info(f"act_at({goalpos}, {goal_th}, {type_str})")
         q_raised = find_joints(self.chain,
-                               goalpos + np.array([0.0, 0.0, 0.05]).reshape(3, 1),
+                               goalpos + np.array([0.0, 0.0, 0.04]).reshape(3, 1),
                                goal_th)
-        q_goal = find_joints(self.chain, goalpos, goal_th)
+        if type_str == 'FLIP':
+            q_goal = find_joints(self.chain, goalpos, goal_th, FLIP_PHI)
+        else:
+            q_goal = find_joints(self.chain, goalpos, goal_th)
 
-        # find rotation from 
         self.send_goal(q_raised,
                        [0.0, -0.1, 0.0, 0.12, 0.0],
                        6.0,
@@ -76,7 +79,14 @@ class BrainNode(Node):
         self.send_goal(q_goal,
                        [0.0, 0.0, 0.0, -0.2, 0.0],
                        2.0, 'NONE')
-        self.send_goal(q_raised, [0.0, 0.1, 0.0, -0.12, 0.0], 4.0, 'NONE')
+        if type_str == 'FLIP':
+            theta = np.arctan2(goalpos[1], goalpos[0])
+            d_pos = np.array([0.09 * cos(theta), 0.09 * sin(theta), 0.0]).reshape(3, 1)
+            q_retract = find_joints(self.chain, goalpos - d_pos, goal_th, FLIP_PHI + 0.35)
+            self.send_goal(q_retract, [0.0, 0.0, 0.0, 0.0, 0.0], 2.0, 'NONE')
+        else:
+            self.send_goal(q_raised, [0.0, 0.1, 0.0, -0.12, 0.0], 4.0, 'NONE')
+
 
 def main(args=None):
     """

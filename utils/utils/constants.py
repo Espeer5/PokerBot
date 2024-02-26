@@ -7,6 +7,7 @@ the project.
 import os
 import math
 import rclpy
+import numpy as np
 from ament_index_python.packages import get_package_share_directory as pkgdir
 
 from sensor_msgs.msg import JointState
@@ -30,6 +31,7 @@ GET_CHAIN = lambda node: KinematicChain(node, "world", "end", JOINTS)
 # TRAJECTORY CONSTANTS
 LAMBDA = 0.1 # Correction factor for position in simulated ikin
 SIM_T = 10 # simulated time for finding joint angles (greater -> more precise)
+FLIP_PHI = np.pi / 2 + 0.2 # The angle of the end affector to the table surface for card flip
 
 # GRAVITY MODEL
 # The gravity model is a simple sinusoidal model of the form:
@@ -38,18 +40,19 @@ SIM_T = 10 # simulated time for finding joint angles (greater -> more precise)
 # The arm needs resistive torques to counteract gravity on only the shoulder and
 # elbow joints. The tip and tipturn joints are not affected greatly by gravity.
 
-A_EL = 0.0 # Elbow sin coefficient
-B_EL = -2.875 # Elbow cos coefficient
+A_EL = 0.15 # Elbow sin coefficient
+B_EL = -2.9 # Elbow cos coefficient
 A_SH = 0.5 # Shoulder sin coefficient
-B_SH = 6.5 # Shoulder cos coefficient
+B_SH = 6.9 # Shoulder cos coefficient
 
 # ACTION MAP
 # Maps strings of actions to functions which execute those actions on the vacuum 
 # gripper.
 ACTION_MAP = {
-    "GB_CARD": lambda: send_pwm(170),
+    "GB_CARD": lambda: send_pwm(200),
     "GB_CHIP": lambda: send_pwm(220),
     "DROP": lambda: send_pwm(0),
+    "FLIP": lambda: send_pwm(0),
     "NONE": lambda: None
 }
 
@@ -130,6 +133,7 @@ class CONTROL_NODE(Node):
         """
         Shutdown the ROS node on exit from the program.
         """
+        send_pwm(0)
         self.destroy_node()
 
     def grav_model(self):
