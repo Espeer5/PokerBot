@@ -4,13 +4,7 @@ from brain.game.Betting import Betting
 from brain.game.Showdown import Showdown
 from brain.game.Payout import Payout
 from brain.game.Player import Player
-
-
-# for testing purposes -> (x1, y1), (x2, y2)
-PLAYERS = [Player([(-0.44, 0.38), (-0.35, 0.53)], [(-0.555, 0.38), (-0.44, 0.53)]),
-           Player([(-0.20, 0.53), (-0.05, 0.63)], [(-0.20, 0.63), (-0.05, 0.74)]),
-           Player([(0.18, 0.53), (0.53, 0.63)], [(0.18, 0.63), (0.35, 0.74)]),
-           Player([(0.37, 0.21), (0.44, 0.36)], [(0.44, 0.21), (0.56, 0.36)])]
+from brain.game.constants import PLAYERS, show
 
 
 class Game():
@@ -21,8 +15,9 @@ class Game():
     def __init__(self, node):
         self.node = node
         self.node.get_logger().info("Game initialized")
-        self.players = self.detect_active_players()
-        self.node.get_logger().info(f"Active players: {[p.chip_box for p in self.players]}")
+        self.players = PLAYERS
+        #self.players = self.detect_active_players()
+        #self.node.get_logger().info(f"Active players: {[p.chip_box for p in self.players]}")
         # self.dealer_idx = 0
         # self.curr_state = 
         
@@ -51,9 +46,25 @@ class Game():
         dealer_idx = 0
 
         while True:
-            # move dealer token
+            # Initialize dealing states
             dealer = Dealer(self.node, self.players, dealer_idx)
+
+            # Deal player hands
             dealer.run()
+
+            # Initialize community card dealing states
+            CC_dealer = CommunityCardsDealer(self.node)
+
+            # Deal the flop
+            CC_dealer.run()
+
+            # Deal the turn
+            CC_dealer.run()
+
+            # Deal the river
+            CC_dealer.run()
+
+            show(self.node)
             break
             
 

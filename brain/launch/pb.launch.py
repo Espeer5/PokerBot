@@ -46,6 +46,13 @@ def generate_launch_description():
         executable = 'BackCardDetector',
         output     = 'screen',
         remappings = [('/image_raw', '/usb_cam/image_raw')])
+    
+    CardDetectorNode = Node(
+        name       = 'CardDetector', 
+        package    = 'detectors',
+        executable = 'CardDetector',
+        output     = 'screen',
+        remappings = [('/image_raw', '/usb_cam/image_raw')])
 
     # Prepare the list of elements to launch
     
@@ -53,7 +60,8 @@ def generate_launch_description():
     return LaunchDescription([
         NODE_USBCAM,
         BackCardDetectorNode,
-        ChipDetectorNode,
+        #ChipDetectorNode,
+        CardDetectorNode,
         ACTUAL_RSP,
         # NODE_RVIZ,
         NODE_HEBI,

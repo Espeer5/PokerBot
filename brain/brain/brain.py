@@ -17,7 +17,9 @@ from sensor_msgs.msg import JointState
 from std_srvs.srv import Trigger
 from utils.find_joints import find_joints
 from detectors.message_types.ChipMessage import ChipMessage
+from detectors.message_types.BackOfCardMessage import BackOfCardMessage
 from detectors.message_types.CardPose import CardPose
+from detectors.message_types.CardMessage import CardMessage
 from utils.constants import GET_CHAIN, FLIP_PHI
 from brain.game.Game import Game
 
@@ -39,6 +41,9 @@ class BrainNode(Node):
 
         # Create a service for interacting with the chip detector node
         self.ch_cli = self.create_client(Trigger, '/ch_detector')
+
+        # Create a service for interacting with the FOC detector node
+        self.foc_cli = self.create_client(Trigger, '/foc_detector')
 
         self.chain = GET_CHAIN(self)
         self.goal1 = np.array([-0.3, 0.2, 0.01]).reshape(3, 1)
@@ -90,7 +95,7 @@ class BrainNode(Node):
                        [0.0, 0.0, 0.0, swivel_velo, 0.0], 'NONE', d_time)
         if type_str == 'FLIP':
             theta = np.arctan2(goalpos[1], goalpos[0])
-            d_pos = np.array([0.09 * cos(theta), 0.09 * sin(theta), 0.0]).reshape(3, 1)
+            d_pos = np.array([0.2 * cos(theta), 0.2 * sin(theta), 0.01]).reshape(3, 1)
             q_retract = find_joints(self.chain, goalpos - d_pos, goal_th, FLIP_PHI + 0.35)
             self.send_goal(q_retract, [0.0, 0.0, 0.0, 0.0, 0.0], 'NONE', 2.0)
         else:
@@ -104,7 +109,10 @@ class BrainNode(Node):
         req = Trigger.Request()
         future = self.bc_cli.call_async(req)
         rclpy.spin_until_future_complete(self, future)
-        return future.result()
+        result = future.result()
+        if result.message is not None:
+            return BackOfCardMessage.from_string(result.message)
+        return None
     
     def get_ch(self):
         """
@@ -113,7 +121,24 @@ class BrainNode(Node):
         req = Trigger.Request()
         future = self.ch_cli.call_async(req)
         rclpy.spin_until_future_complete(self, future)
-        return ChipMessage.from_string(future.result().message)
+        result = future.result()
+        if result.message is not None:
+            return ChipMessage.from_string(result.message)
+        return None
+
+    
+    def get_foc(self):
+        """
+        Get the list of all the fronts of cards and their locations in the 
+        workspace.
+        """
+        req = Trigger.Request()
+        future = self.foc_cli.call_async(req)
+        rclpy.spin_until_future_complete(self, future)
+        msg = future.result().message
+        if msg not in ["No cards found", "No image available"]:
+            return CardMessage.from_string(future.result().message)
+        return None
 
 
 def main(args=None):
@@ -126,16 +151,23 @@ def main(args=None):
     # Create the brain node.
     node = BrainNode('brain')
 
+    # Wait for the control node to be ready
+    sleep(4)
+
     # Send a goal to the control node.
     # for _ in range(8):
     #     node.act_at(node.goal1, 0.0, 'GB_CARD')
     #     node.act_at(node.goal2, 0.0, 'DROP')
-    game = Game(node)
-    game.run()
     # while True:
     #     node.get_logger().info("RAN")
     #     sleep(1)
-    #     node.get_logger().info(f"{node.get_ch()}")
+    #     node.get_logger().info(f"{node.get_foc()}")
+    # game = Game(node)
+    # game.run()
+    while True:
+        node.get_logger().info("RAN")
+        sleep(1)
+        node.get_logger().info(f"{node.get_ch()}")
     # Spin the node so the callback function is called.
     rclpy.spin(node)
 

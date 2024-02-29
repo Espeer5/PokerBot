@@ -36,7 +36,7 @@ def pixelToWorld(image, u, v, x0, y0, annotateImage=True):
     if (markerIds is None or len(markerIds) != 4 or
         set(markerIds.flatten()) != set([1,2,3,4])):
         print(markerIds)
-        assert False
+        print("OBSCURED MARKERS")
         return None
 
 
@@ -57,7 +57,6 @@ def pixelToWorld(image, u, v, x0, y0, annotateImage=True):
 
     # Map the object in question.
     uvObj = np.float32([u, v])
-    print(uvObj.reshape(1,1,2), M)
     xyObj = cv2.perspectiveTransform(uvObj.reshape(1,1,2), M).reshape(2)
     assert xyObj is not None
 

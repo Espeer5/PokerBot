@@ -8,6 +8,7 @@ import cv_bridge
 from rclpy.node         import Node
 from sensor_msgs.msg    import Image
 from std_srvs.srv       import Trigger
+from detectors.utilities.base_node import Detector
 from detectors.utilities.mapping_utilities import pixelToWorld
 from detectors.utilities.card_utilities import *
 from detectors.message_types.CardMessage import CardMessage
@@ -20,7 +21,7 @@ MINAREA = 1000
 #
 #  Detector Node Class
 #
-class BackCardDetectorNode(Node):
+class CardDetectorNode(Detector):
     BLUE = (0, 0, 255)
 
     # Initialization.
@@ -33,12 +34,12 @@ class BackCardDetectorNode(Node):
         
         # Provide the /bc_detector service for the brain node to request the 
         # locations of all backs of cards showing
-        self.c_service = self.create_service(Trigger, '/c_detector', self.c_callback)
+        self.c_service = self.create_service(Trigger, '/foc_detector', self.foc_callback)
 
         # Report.
         self.get_logger().info("CardDetector running...")
 
-    def c_callback(self, _, response):
+    def foc_callback(self, _, response):
         """
         Callback for the /bc_detector service. This service is called by the
         brain node to request the locations of all backs of cards showing.
@@ -73,7 +74,7 @@ class BackCardDetectorNode(Node):
 
                 world_loc = pixelToWorld(frame, round(x), round(y), 0.0, 0.34, annotateImage=False)
 
-                if world_loc is not None:
+                if world_loc is not None and rank is not None and suit is not None:
                     pose = CardPose((float(world_loc[0]), float(world_loc[1]), float(-0.01)), alpha)
                     cards.append((pose, rank, suit))
         if len(cards) > 0:
@@ -103,7 +104,7 @@ def main(args=None):
     rclpy.init(args=args)
 
     # Instantiate the detector node.
-    node = BackCardDetectorNode('BackCardDetectorNode')
+    node = CardDetectorNode('CardDetectorNode')
 
     # Spin the node until interrupted.
     rclpy.spin(node)

@@ -29,5 +29,7 @@ class CardMessage():
     @staticmethod
     def from_string(str):
         card_strings = json.loads(str)
-        return CardMessage([CardMessage.Card.from_string(card_str)] for card_str in card_strings)
+        cards = [CardMessage.Card.from_string(card_str) for card_str in card_strings]
+        card_tups = [(card.pose, card.rank, card.suit) for card in cards]
+        return CardMessage(card_tups)
     

@@ -41,6 +41,8 @@ class ChipDetectorNode(Detector):
         # Initialize the node, naming it as specified
         super().__init__(name)
 
+        load_chip_descriptors_from_json()
+
         # Provice the /ch_detector service for the brain node to request the 
         # locations of all chips showing
         self.ch_service = self.create_service(Trigger, '/ch_detector', self.ch_callback)
@@ -81,29 +83,30 @@ class ChipDetectorNode(Detector):
 
         self.get_logger().info(f"{len(red_contours)}, {len(white_contours)}, {len(blue_contours)}, {len(black_contours)}")
         contours = red_contours + white_contours + blue_contours + black_contours
+        # self.get_logger().info(f"num contours={len(contours)}")
         cv2.drawContours(frame, contours, -1, (0, 0, 255), 3)
         cv2.imshow("contours", frame)
-        cv2.waitKey()
+        cv2.waitKey(0)
 
+        # def get_coords_from_contours(contours):
+        #     coords = []
+        #     for contour in contours:
+        #         (u, v), _ = cv2.minEnclosingCircle(contour)
+        #         world_coords = pixelToWorld(frame, round(u), round(v), 0.0, 0.34, annotateImage=False)
+        #         if world_coords is not None:
+        #             coords.append((float(world_coords[0]), float(world_coords[1]), float(0)))
+        #     return coords
         
+        # color_to_coords_map = {}
+        # for color, contours in [("red", red_contours), ("white", white_contours),
+        #                         ("blue", blue_contours), ("black", black_contours)]:
+        #     color_to_coords_map[color] = get_coords_from_contours(contours)
 
-        def get_coords_from_contours(contours):
-            coords = []
-            for contour in contours:
-                (u, v), _ = cv2.minEnclosingCircle(contour)
-                world_coords = pixelToWorld(frame, round(u), round(v), 0.0, 0.34, annotateImage=False)
-                if world_coords is not None:
-                    coords.append((float(world_coords[0]), float(world_coords[1]), float(0)))
-            return coords
-        
-        color_to_coords_map = {}
-        for color, contours in [("red", red_contours), ("white", white_contours),
-                                ("blue", blue_contours), ("black", black_contours)]:
-            color_to_coords_map[color] = get_coords_from_contours(contours)
-
-        self.get_logger().info(f"color_to_coords_map= {color_to_coords_map}")
-        response.message = ChipMessage.from_color_to_coords_map(color_to_coords_map).to_string()
+        # self.get_logger().info(f"color_to_coords_map= {color_to_coords_map}")
+        # response.message = ChipMessage.from_color_to_coords_map(color_to_coords_map).to_string()
         # send answer
+        # return response
+        response.message = "Nothing"
         return response
 
 

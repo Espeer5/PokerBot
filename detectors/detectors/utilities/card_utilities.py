@@ -148,6 +148,9 @@ def identify_card(card_image):
             best_name = name
 
     best_rank, best_suit = best_name.split("_of_")
+    print(best_num_matches)
+    if best_num_matches < 50:
+        return None, None
     return best_rank, best_suit
 
 
@@ -168,11 +171,14 @@ def load_back_of_card_descriptors_from_json():
     json_file.close()
 
 
-# def load_card_descriptors_map_from_json():
-#     global CARD_DESCRIPTORS_MAP
-#     json_file = open(f"{pkgdir('detectors')}/detectors/card_features/CardDescriptors.json", "r")
-#     CARD_DESCRIPTORS_MAP = np.array(json.load(json_file), dtype=object).astype('uint8')
-#     json_file.close()
+def load_card_descriptors_map_from_json():
+    global CARD_DESCRIPTORS_MAP
+    json_file = open(f"{pkgdir('detectors')}/card_features/CardDescriptors.json", "r")
+    descriptors_dict = json.load(json_file)
+    for key in descriptors_dict:
+        descriptors_dict[key] = np.array(descriptors_dict[key], dtype=object).astype('uint8')
+    CARD_DESCRIPTORS_MAP = descriptors_dict
+    json_file.close()
 
 
 # def load_cards():

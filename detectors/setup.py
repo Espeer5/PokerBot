@@ -14,6 +14,9 @@ setup(
         ('share/' + package_name + '/rviz',   glob('rviz/*')),
         ('share/' + package_name + '/launch', glob('launch/*')),
         ('share/' + package_name + '/card_features', glob('detectors/references/BackOfCardDescriptors.json')),
+        ('share/' + package_name + '/card_features', glob('detectors/references/CardDescriptors.json')),
+        ('share/' + package_name + '/card_features', glob('detectors/references/ChipDescriptors.json')),
+        ('share/' + package_name + '/card_images', glob('detectors/references/card_images/Chip.jpg')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -26,7 +29,7 @@ setup(
         'console_scripts': [
             'BackCardDetector  = detectors.BackCardDetector:main',
             'ChipDetector  = detectors.ChipDetector:main',
-            # 'CardDetector  = detectors.CardDetector:main',
+            'CardDetector  = detectors.CardDetector:main',
             # 'BackCardDetector  = detectors.BackCardDetector:main',
         ],
     },
