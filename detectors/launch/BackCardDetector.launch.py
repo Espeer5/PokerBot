@@ -18,6 +18,8 @@ from launch.actions                    import Shutdown
 from launch_ros.actions                import Node
 
 
+from utils.constants import ACTUAL_RSP, NODE_HEBI
+
 #
 # Generate the Launch Description
 #
@@ -66,6 +68,20 @@ def generate_launch_description():
         output     = 'screen',
         remappings = [('/image_raw', '/usb_cam/image_raw')])
     
+    brain = Node(
+        name       = 'brain', 
+        package    = 'brain',
+        # executable = 'collect', # Or 'brain'
+        executable = 'brain',
+        output     = 'screen')
+
+    # Configure the node which publishes the torques to the robot.
+    control = Node(
+        name       = 'control', 
+        package    = 'trajectory',
+        executable = 'obey',
+        output     = 'screen')
+    
     # CardDetectorNode = Node(
     #     name       = 'CardDetector', 
     #     package    = 'detectors',
@@ -90,5 +106,9 @@ def generate_launch_description():
         USBCamNode,
         # BackCardDetectorNode,
         # CardDetectorNode,
-        ChipDetectorNode
+        ChipDetectorNode,
+        brain,
+        control,
+        NODE_HEBI,
+        ACTUAL_RSP
     ])

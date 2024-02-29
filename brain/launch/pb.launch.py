@@ -31,6 +31,14 @@ def generate_launch_description():
         executable = 'obey',
         output     = 'screen')
     
+    ChipDetectorNode = Node(
+        name       = 'ChipDetector', 
+        package    = 'detectors',
+        executable = 'ChipDetector',
+        output     = 'screen',
+        remappings = [('/image_raw', '/usb_cam/image_raw')]
+    )
+    
     # Configure the BackCardDetector
     BackCardDetectorNode = Node(
         name       = 'BackCardDetector', 
@@ -44,7 +52,8 @@ def generate_launch_description():
     # Return the description, built as a python list.
     return LaunchDescription([
         NODE_USBCAM,
-        # BackCardDetectorNode,
+        BackCardDetectorNode,
+        ChipDetectorNode,
         ACTUAL_RSP,
         # NODE_RVIZ,
         NODE_HEBI,

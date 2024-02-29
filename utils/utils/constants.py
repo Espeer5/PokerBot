@@ -42,8 +42,8 @@ FLIP_PHI = np.pi / 2 + 0.2 # The angle of the end affector to the table surface 
 
 A_EL = 0.15 # Elbow sin coefficient
 B_EL = -2.9 # Elbow cos coefficient
-A_SH = 0.5 # Shoulder sin coefficient
-B_SH = 6.9 # Shoulder cos coefficient
+A_SH = 0.6 # Shoulder sin coefficient
+B_SH = 7.0 # Shoulder cos coefficient
 
 # ACTION MAP
 # Maps strings of actions to functions which execute those actions on the vacuum 

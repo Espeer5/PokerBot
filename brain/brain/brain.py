@@ -10,10 +10,14 @@ from the previous goal position.
 import rclpy
 import numpy as np
 from math import cos, sin
+from time import sleep
 
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
+from std_srvs.srv import Trigger
 from utils.find_joints import find_joints
+from detectors.message_types.ChipMessage import ChipMessage
+from detectors.message_types.CardPose import CardPose
 from utils.constants import GET_CHAIN, FLIP_PHI
 from brain.game.Game import Game
 
@@ -30,6 +34,12 @@ class BrainNode(Node):
         self.cmdmsg = JointState()
         self.cmdpub = self.create_publisher(JointState, '/goal', 10)
 
+        # Create a service for interacting with the BC detector node
+        self.bc_cli = self.create_client(Trigger, '/bc_detector')
+
+        # Create a service for interacting with the chip detector node
+        self.ch_cli = self.create_client(Trigger, '/ch_detector')
+
         self.chain = GET_CHAIN(self)
         self.goal1 = np.array([-0.3, 0.2, 0.01]).reshape(3, 1)
         self.goal2 = np.array([0.3, 0.2, 0.0]).reshape(3, 1)
@@ -44,7 +54,7 @@ class BrainNode(Node):
         """
         self.destroy_node()
 
-    def send_goal(self, q, qdot, T, type_str):
+    def send_goal(self, q, qdot, type_str, T=None):
         """
         Send a goal to the control node to move to the given joint position q at
         the given velocity qdot over the given time duration T.
@@ -55,7 +65,7 @@ class BrainNode(Node):
         self.cmdmsg.name = (type_str,)
         self.cmdmsg.position = q.flatten().tolist()
         self.cmdmsg.velocity = qdot
-        self.cmdmsg.effort = (T,)
+        self.cmdmsg.effort = (T,) if T is not None else (-1.0,)
         self.cmdpub.publish(self.cmdmsg)
 
     def act_at(self, goalpos, goal_th, type_str):
@@ -73,19 +83,37 @@ class BrainNode(Node):
             q_goal = find_joints(self.chain, goalpos, goal_th)
 
         self.send_goal(q_raised,
-                       [0.0, -0.1, 0.0, 0.12, 0.0],
-                       6.0,
-                       type_str)
+                       [0.0, -0.1, 0.0, 0.12, 0.0], type_str)
+        swivel_velo = 0.0 if type_str == 'DROP' else -0.2
+        d_time = 1.0 if type_str == 'DROP' else 2.0
         self.send_goal(q_goal,
-                       [0.0, 0.0, 0.0, -0.2, 0.0],
-                       2.0, 'NONE')
+                       [0.0, 0.0, 0.0, swivel_velo, 0.0], 'NONE', d_time)
         if type_str == 'FLIP':
             theta = np.arctan2(goalpos[1], goalpos[0])
             d_pos = np.array([0.09 * cos(theta), 0.09 * sin(theta), 0.0]).reshape(3, 1)
             q_retract = find_joints(self.chain, goalpos - d_pos, goal_th, FLIP_PHI + 0.35)
-            self.send_goal(q_retract, [0.0, 0.0, 0.0, 0.0, 0.0], 2.0, 'NONE')
+            self.send_goal(q_retract, [0.0, 0.0, 0.0, 0.0, 0.0], 'NONE', 2.0)
         else:
-            self.send_goal(q_raised, [0.0, 0.1, 0.0, -0.12, 0.0], 4.0, 'NONE')
+            swivel_velo = 0.0 if type_str == 'DROP' else -0.12
+            self.send_goal(q_raised, [0.0, 0.1, 0.0, swivel_velo, 0.0], 'NONE', 1.5)
+
+    def get_bc(self):
+        """
+        Get the list of all the back of cards and their locations in the workspace.
+        """
+        req = Trigger.Request()
+        future = self.bc_cli.call_async(req)
+        rclpy.spin_until_future_complete(self, future)
+        return future.result()
+    
+    def get_ch(self):
+        """
+        Get the list of all the chips and their locations in the workspace.
+        """
+        req = Trigger.Request()
+        future = self.ch_cli.call_async(req)
+        rclpy.spin_until_future_complete(self, future)
+        return ChipMessage.from_string(future.result().message)
 
 
 def main(args=None):
@@ -98,14 +126,16 @@ def main(args=None):
     # Create the brain node.
     node = BrainNode('brain')
 
-    # # Send a goal to the control node.
+    # Send a goal to the control node.
     # for _ in range(8):
     #     node.act_at(node.goal1, 0.0, 'GB_CARD')
     #     node.act_at(node.goal2, 0.0, 'DROP')
-    node.get_logger().info("new Game()")
     game = Game(node)
     game.run()
-    node.get_logger().info("exit game.run()")
+    # while True:
+    #     node.get_logger().info("RAN")
+    #     sleep(1)
+    #     node.get_logger().info(f"{node.get_ch()}")
     # Spin the node so the callback function is called.
     rclpy.spin(node)
 

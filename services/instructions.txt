@@ -1,7 +1,0 @@
-http://wiki.ros.org/ROS/Tutorials/WritingServiceClient%28python%29
-
-http://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv#Creating_a_srv
-
-https://github.com/ros-controls/gazebo_ros2_control/issues/71
-
-https://answers.ros.org/question/258444/sudo-apt-install-catkin-not-working/

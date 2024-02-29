@@ -45,6 +45,13 @@ class JointSpline():
         return the end action to be taken if the spline is completed.
         """
         return (t >= self.T, self.endAction)
+    
+def d_to_time(q1, q2):
+    """
+    A helper function which decides how much time a particular spline should take
+    based on the distance to be travelled.
+    """
+    return 6 - np.exp(-0.5*(np.linalg.norm(q2 - q1) - 3.4))
 
 
 class JointSplineQueue():
@@ -59,11 +66,13 @@ class JointSplineQueue():
         self.t0 = 0
         self.splines = []
 
-    def enqueue(self, q0, qf, qdot0, qdotf, T, endAction=None):
+    def enqueue(self, q0, qf, qdot0, qdotf, T=None, endAction=None):
         """
         Add a joint spline to the queue with the given initial and final joint
         positions, initial and final joint velocities, and time duration.
         """
+        if T == -1:
+            T = d_to_time(q0, qf)
         self.splines.append(JointSpline(q0, qf, qdot0, qdotf, T, endAction))
     
     def dequeue(self):

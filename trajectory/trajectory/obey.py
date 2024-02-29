@@ -79,10 +79,6 @@ class ControlNode(CONTROL_NODE):
         # Create a subscriber for goal messages, but do not begin listeining yet
         self.goal_sub = self.create_subscription(JointState, '/goal', self.cb_goal,
                                                  10)
-        # self.detect_pub = self.create_publisher(String, '/detect_now', 3)
-        # # Wait for the detector to sub to the detect_now topic
-        # while self.detect_pub.get_subscription_count() == 0:
-        #     pass
     
     def cb_goal(self, msg):
         """

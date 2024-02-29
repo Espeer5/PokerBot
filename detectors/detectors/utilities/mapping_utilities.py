@@ -27,11 +27,16 @@ def pixelToWorld(image, u, v, x0, y0, annotateImage=True):
     markerCorners, markerIds, _ = cv2.aruco.detectMarkers(
         image, cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50))
     if annotateImage:
+        # if markerIds is None:
         cv2.aruco.drawDetectedMarkers(image, markerCorners, markerIds)
+        cv2.imshow("image", image)
+        cv2.waitKey(0)
 
     # Abort if not all markers are detected.
     if (markerIds is None or len(markerIds) != 4 or
         set(markerIds.flatten()) != set([1,2,3,4])):
+        print(markerIds)
+        assert False
         return None
 
 
@@ -52,7 +57,9 @@ def pixelToWorld(image, u, v, x0, y0, annotateImage=True):
 
     # Map the object in question.
     uvObj = np.float32([u, v])
+    print(uvObj.reshape(1,1,2), M)
     xyObj = cv2.perspectiveTransform(uvObj.reshape(1,1,2), M).reshape(2)
+    assert xyObj is not None
 
 
     # Mark the detected coordinates.

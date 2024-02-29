@@ -15,6 +15,7 @@ CARD_MIN_AREA = 1000
 # Style
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 BACK_OF_CARD_DESCRIPTORS = np.array([])
+CARD_DESCRIPTORS_MAP = np.array([])
 
 
 # class QueryCard:
@@ -133,23 +134,18 @@ def extract_card_from_image(image, contour):
 
 def identify_card(card_image):
     """Finds best rank and suit matches for the query card."""
-    #TODO
-    train_cards = {}
 
     orb = cv2.ORB_create(fastThreshold=0, edgeThreshold=0)
     bf = cv2.BFMatcher_create(cv2.NORM_HAMMING,crossCheck=True)
     _, descriptors1 = orb.detectAndCompute(card_image, None)
 
     best_num_matches = 0
-    for train_card in train_cards:
-        if train_card.name != "Seven_of_Spades":
-            _, descriptors2 = orb.detectAndCompute(train_card.img, None)
+    for name, descriptors2 in CARD_DESCRIPTORS_MAP.items():
+        matches = bf.match(descriptors1, descriptors2)
 
-            matches = bf.match(descriptors1, descriptors2)
-
-            if len(matches) > best_num_matches:
-                best_num_matches = len(matches)
-                best_name = train_card.name
+        if len(matches) > best_num_matches:
+            best_num_matches = len(matches)
+            best_name = name
 
     best_rank, best_suit = best_name.split("_of_")
     return best_rank, best_suit
@@ -165,32 +161,53 @@ def is_back_of_card(card_image):
     return len(matches) >= 140
 
 
-def load_descriptors_from_json():
+def load_back_of_card_descriptors_from_json():
     global BACK_OF_CARD_DESCRIPTORS
-    json_file = open(f"{pkgdir('detectors')}/card_features/Back_of_Card.json", "r")
+    json_file = open(f"{pkgdir('detectors')}/card_features/BackOfCardDescriptors.json", "r")
     BACK_OF_CARD_DESCRIPTORS = np.array(json.load(json_file), dtype=object).astype('uint8')
     json_file.close()
 
 
-def load_cards():
-    """Loads rank images from directory specified by filepath. Stores
-    them in a list of Train_ranks objects."""
-    
-    ranks = ['Ace','Two','Three','Four','Five','Six','Seven','Eight',
-             'Nine','Ten','Jack','Queen','King']
-    suits = ['Spades','Diamonds',
-             'Clubs','Hearts']
-    
-    # LOAD JSON
-    name_to_feature_dict = {}
+# def load_card_descriptors_map_from_json():
+#     global CARD_DESCRIPTORS_MAP
+#     json_file = open(f"{pkgdir('detectors')}/detectors/card_features/CardDescriptors.json", "r")
+#     CARD_DESCRIPTORS_MAP = np.array(json.load(json_file), dtype=object).astype('uint8')
+#     json_file.close()
 
-    train_cards = []
-    for rank in ranks:
-        for suit in suits:
-            name = rank + "_of_" + suit
-            train_cards.append(ReferenceFeatures(name, name_to_feature_dict[name]))
 
-    return np.array(train_cards)
+# def load_cards():
+#     """Loads rank images from directory specified by filepath. Stores
+#     them in a list of Train_ranks objects."""
+    
+#     ranks = ['Ace','Two','Three','Four','Five','Six','Seven','Eight',
+#              'Nine','Ten','Jack','Queen','King']
+#     suits = ['Spades','Diamonds',
+#              'Clubs','Hearts']
+    
+
+
+#     orb = cv2.ORB_create(fastThreshold=0, edgeThreshold=0)
+
+#     name_to_descriptors = {}
+
+#     # train_cards = []
+#     for rank in ranks:
+#         for suit in suits:
+
+#     #         # card_names.append(rank + "_of_" + suit)
+#     #         train_cards.append(Train_ranks())
+#             name = rank + "_of_" + suit
+
+#             filename = rank + "_of_" + suit + '.jpg'
+#             img = cv2.imread("references/card_images/"+filename, cv2.IMREAD_GRAYSCALE)
+#             _, descriptors1 = orb.detectAndCompute(img, None)
+#             name_to_descriptors[name] = descriptors1.tolist()
+
+#     json_descriptors = json.dumps(name_to_descriptors)
+#     file = open("references/CardDescriptors.json", "w")
+#     file.write(json_descriptors)
+
+#     # return train_cards
 
 
 def draw_results(image, rank, suit, coords):
@@ -207,5 +224,3 @@ def draw_results(image, rank, suit, coords):
     cv2.putText(image, suit, (x-60,y+25), FONT, 1, (50,200,200), 2, cv2.LINE_AA)
 
     return image
-
-
