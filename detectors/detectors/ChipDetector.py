@@ -62,17 +62,7 @@ class ChipDetectorNode(Detector):
         assert(self.prev_img.encoding == "rgb8")  # lies
 
         # Convert into OpenCV image, using RGB 8-bit (pass-through).
-        # frame = self.bridge.imgmsg_to_cv2(self.prev_img, "passthrough")
         frame = self.bridge.imgmsg_to_cv2(self.prev_img, "bgr8")
-
-
-        # gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
-        # contours, hierarchy = cv2.findContours(gray, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-            
-        # # Draw the outline
-        # frame = cv2.drawContours(frame, contours, -1, color=(0, 0, 0), thickness=5)
-        # cv2.imshow("image", frame)
-        # cv2.waitKey(0)
 
         red, white, blue, black = preprocess_image(frame)
 
@@ -83,30 +73,27 @@ class ChipDetectorNode(Detector):
 
         self.get_logger().info(f"{len(red_contours)}, {len(white_contours)}, {len(blue_contours)}, {len(black_contours)}")
         contours = red_contours + white_contours + blue_contours + black_contours
-        # self.get_logger().info(f"num contours={len(contours)}")
-        cv2.drawContours(frame, contours, -1, (0, 0, 255), 3)
-        cv2.imshow("contours", frame)
-        cv2.waitKey(0)
+        # cv2.drawContours(frame, contours, -1, (0, 0, 255), 3)
+        # cv2.imshow("contours", frame)
+        # cv2.waitKey(0)
 
-        # def get_coords_from_contours(contours):
-        #     coords = []
-        #     for contour in contours:
-        #         (u, v), _ = cv2.minEnclosingCircle(contour)
-        #         world_coords = pixelToWorld(frame, round(u), round(v), 0.0, 0.34, annotateImage=False)
-        #         if world_coords is not None:
-        #             coords.append((float(world_coords[0]), float(world_coords[1]), float(0)))
-        #     return coords
+        def get_coords_from_contours(contours):
+            coords = []
+            for contour in contours:
+                (u, v), _ = cv2.minEnclosingCircle(contour)
+                world_coords = pixelToWorld(frame, round(u), round(v), 0.0, 0.34, annotateImage=False)
+                if world_coords is not None:
+                    coords.append((float(world_coords[0]), float(world_coords[1]), float(0)))
+            return coords
         
-        # color_to_coords_map = {}
-        # for color, contours in [("red", red_contours), ("white", white_contours),
-        #                         ("blue", blue_contours), ("black", black_contours)]:
-        #     color_to_coords_map[color] = get_coords_from_contours(contours)
+        color_to_coords_map = {}
+        for color, contours in [("red", red_contours), ("white", white_contours),
+                                ("blue", blue_contours), ("black", black_contours)]:
+            color_to_coords_map[color] = get_coords_from_contours(contours)
 
-        # self.get_logger().info(f"color_to_coords_map= {color_to_coords_map}")
-        # response.message = ChipMessage.from_color_to_coords_map(color_to_coords_map).to_string()
+        self.get_logger().info(f"color_to_coords_map= {color_to_coords_map}")
+        response.message = ChipMessage.from_color_to_coords_map(color_to_coords_map).to_string()
         # send answer
-        # return response
-        response.message = "Nothing"
         return response
 
 
