@@ -148,7 +148,7 @@ def identify_card(card_image):
             best_name = name
 
     best_rank, best_suit = best_name.split("_of_")
-    print(best_num_matches)
+    # print(best_num_matches)
     if best_num_matches < 50:
         return None, None
     return best_rank, best_suit

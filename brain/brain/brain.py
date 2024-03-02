@@ -65,7 +65,7 @@ class BrainNode(Node):
         the given velocity qdot over the given time duration T.
         """
         # self.get_logger().info(f"send_goal({q}, {qdot}, {T}, {type_str})")
-        self.get_logger().info("message sent")
+        # self.get_logger().info("message sent")
         self.cmdmsg.header.stamp = self.get_clock().now().to_msg()
         self.cmdmsg.name = (type_str,)
         self.cmdmsg.position = q.flatten().tolist()
@@ -109,10 +109,10 @@ class BrainNode(Node):
         req = Trigger.Request()
         future = self.bc_cli.call_async(req)
         rclpy.spin_until_future_complete(self, future)
-        result = future.result()
-        if result.message is not None:
-            return BackOfCardMessage.from_string(result.message)
-        return None
+        msg = future.result().message
+        if msg not in ["No cards found", "No image available"]:
+            return BackOfCardMessage.from_string(msg)
+        return msg
     
     def get_ch(self):
         """
@@ -121,9 +121,9 @@ class BrainNode(Node):
         req = Trigger.Request()
         future = self.ch_cli.call_async(req)
         rclpy.spin_until_future_complete(self, future)
-        result = future.result()
-        if result.message is not None:
-            return ChipMessage.from_string(result.message)
+        msg = future.result().message
+        if msg is not None:
+            return ChipMessage.from_string(msg)
         return None
 
     
@@ -137,7 +137,7 @@ class BrainNode(Node):
         rclpy.spin_until_future_complete(self, future)
         msg = future.result().message
         if msg not in ["No cards found", "No image available"]:
-            return CardMessage.from_string(future.result().message)
+            return CardMessage.from_string(msg)
         return None
 
 

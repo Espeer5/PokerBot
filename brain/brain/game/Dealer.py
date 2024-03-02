@@ -6,10 +6,10 @@ from brain.game.constants import DECK_LOCATION, get_card_locations_from_card_box
 
 class Dealer():
 
-    def __init__(self, node, active_players, dealer_idx):
+    def __init__(self, node, active_players):
         self.node = node
         self.players = active_players
-        self.dealer_index = dealer_idx
+        self.dealer_index = 0
 
     def run(self):
         # card_locations = {self.get_card_locations_from_card_box(curr_player.card_box) for curr_player in}

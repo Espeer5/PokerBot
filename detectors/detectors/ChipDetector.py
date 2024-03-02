@@ -66,16 +66,16 @@ class ChipDetectorNode(Detector):
 
         red, white, blue, black = preprocess_image(frame)
 
-        red_contours = find_chips(frame, red)
-        white_contours = find_chips(frame, white)
-        blue_contours = find_chips(frame, blue)
-        black_contours = find_chips(frame, black)
+        red_contours = find_chips(frame, red, "red")
+        white_contours = find_chips(frame, white, "white")
+        blue_contours = find_chips(frame, blue, "blue")
+        black_contours = find_chips(frame, black, "black")
 
         self.get_logger().info(f"{len(red_contours)}, {len(white_contours)}, {len(blue_contours)}, {len(black_contours)}")
         contours = red_contours + white_contours + blue_contours + black_contours
-        # cv2.drawContours(frame, contours, -1, (0, 0, 255), 3)
-        # cv2.imshow("contours", frame)
-        # cv2.waitKey(0)
+        cv2.drawContours(frame, contours, -1, (0, 0, 255), 3)
+        cv2.imshow("contours", frame)
+        cv2.waitKey(0)
 
         def get_coords_from_contours(contours):
             coords = []
@@ -91,7 +91,7 @@ class ChipDetectorNode(Detector):
                                 ("blue", blue_contours), ("black", black_contours)]:
             color_to_coords_map[color] = get_coords_from_contours(contours)
 
-        self.get_logger().info(f"color_to_coords_map= {color_to_coords_map}")
+        # self.get_logger().info(f"color_to_coords_map= {color_to_coords_map}")
         response.message = ChipMessage.from_color_to_coords_map(color_to_coords_map).to_string()
         # send answer
         return response
