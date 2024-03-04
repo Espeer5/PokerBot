@@ -27,7 +27,7 @@ def preprocess_image(image):
     image = cv2.GaussianBlur(image,(5,5),0)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-    red_range = np.array([[0, 15], [65, 200], [90, 210]])
+    red_range = np.array([[0, 10], [60, 200], [90, 210]])
     white_range = np.array([[98, 120], [5, 60], [150, 255]])
     blue_range = np.array([[100, 125], [60, 185], [100, 200]])
     black_range = np.array([[100, 120], [0, 255], [0, 150]])
@@ -39,14 +39,24 @@ def preprocess_image(image):
         if dilate > 0:
             color = cv2.dilate(color, morph_ellipse, iterations=dilate)
 
+        cv2.imshow("color0", color)
         if erode > 0:
             color = cv2.erode(color, morph_ellipse, iterations=erode)
         return color
 
+
     red = threshold_and_process(image, red_range, erode=5)
+    cv2.imshow("color", red)
+    cv2.waitKey(0)
     white = threshold_and_process(image, white_range, erode=5)
+    cv2.imshow("color", white)
+    cv2.waitKey(0)
     blue = threshold_and_process(image, blue_range, erode=5)
+    # cv2.imshow("color", blue)
+    # cv2.waitKey(0)
     black = threshold_and_process(image, black_range, erode=5)
+    # cv2.imshow("color", black)
+    # cv2.waitKey(0)
 
     return red, white, blue, black
 
@@ -87,7 +97,7 @@ def find_chips(image, thresh_image, color):
                 # cv2.imshow("matches", matching_result)
                 # cv2.waitKey(0)
                 # print(len(matches))
-                print(len(matches))
+                # print(len(matches))
                 # if len(matches) >= 50:
                     # cv2.imshow("chip", chip_image)
                     # cv2.waitKey(0)

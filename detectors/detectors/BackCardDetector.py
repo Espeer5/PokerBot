@@ -54,16 +54,17 @@ class BackCardDetectorNode(Detector):
         Callback for the /bc_detector service. This service is called by the
         brain node to request the locations of all backs of cards showing.
         """
-        if self.prev_img is None:
+        if self.prev_images is None:
             response.message = "No image available"
             response.success = False
             return response
         response.success = True
         # Ensure the previous image is able to be processed
-        assert self.prev_img.encoding == "rgb8"
+        image = self.prev_images[-1]
+        assert image.encoding == "rgb8"
 
         # Convert into OpenCV image, using RGB 8-bit (pass-through).
-        frame = self.bridge.imgmsg_to_cv2(self.prev_img, "passthrough")
+        frame = self.bridge.imgmsg_to_cv2(image, "passthrough")
 
         processed_image = preprocess_image(frame)
         card_contours = find_cards(processed_image)
