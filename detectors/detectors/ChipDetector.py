@@ -27,6 +27,56 @@ from detectors.message_types.Chip import Chip
 
 
 #
+#  Use Trackbars to Vary HSV Limits
+#
+# A single trackbar object
+class TrackBar():
+    def __init__(self, winname, barname, hsvlimits, channel, element, maximum):
+        # Store the parameters.
+        self.winname   = winname
+        self.barname   = barname
+        self.hsvlimits = hsvlimits
+        self.channel   = channel
+        self.element   = element
+        # Create the trackbar.
+        cv2.createTrackbar(barname, winname,
+                           hsvlimits[channel,element], maximum, self.CB)
+
+    def CB(self, val):
+        # Make sure the threshold doesn't pass the opposite limit.
+        if self.element == 0:  val = min(val, self.hsvlimits[self.channel,1])
+        else:                  val = max(val, self.hsvlimits[self.channel,0])
+        # Update the threshold and the tracker position.
+        self.hsvlimits[self.channel,self.element] = val
+        cv2.setTrackbarPos(self.barname, self.winname, val)
+
+# A combined HSV limit tracker.
+class HSVTracker():
+    def __init__(self, hsvlimits):
+        # Create a controls window for the trackbars.
+        winname = 'Controls'
+        cv2.namedWindow(winname)
+
+        # Show the control window.  Note this won't actually appear/
+        # update (draw on screen) until waitKey(1) is called below.
+        cv2.imshow(winname, np.zeros((1, 500, 3), np.uint8))
+
+        # Create trackbars for each limit.
+        TrackBar(winname, 'Lower H', hsvlimits, 0, 0, 179)
+        TrackBar(winname, 'Upper H', hsvlimits, 0, 1, 179)
+        TrackBar(winname, 'Lower S', hsvlimits, 1, 0, 255)
+        TrackBar(winname, 'Upper S', hsvlimits, 1, 1, 255)
+        TrackBar(winname, 'Lower V', hsvlimits, 2, 0, 255)
+        TrackBar(winname, 'Upper V', hsvlimits, 2, 1, 255)
+
+    def update(self):
+        # Call waitKey(1) to force the window to update.
+        cv2.waitKey(1)
+
+
+
+
+#
 #  Detector Node Class
 #
 class ChipDetectorNode(Detector):
@@ -44,10 +94,13 @@ class ChipDetectorNode(Detector):
         super().__init__(name)
 
         load_chip_descriptors_from_json()
+        # self.pubbin = self.create_publisher(Image, name+'/binary',    3)
 
         # Provice the /ch_detector service for the brain node to request the 
         # locations of all chips showing
         self.ch_service = self.create_service(Trigger, '/ch_detector', self.ch_callback)
+        self.hsvlimits = np.array([[20, 30], [90, 170], [60, 255]])
+        # self.tracker = HSVTracker(self.hsvlimits)
 
         # Report.
         self.get_logger().info("ChipDetector running...")
@@ -60,8 +113,6 @@ class ChipDetectorNode(Detector):
             return response
         response.success = True
 
-
-
         chip_to_coords_map = {}
         chip_to_contour_map = {}
 
@@ -72,6 +123,14 @@ class ChipDetectorNode(Detector):
             # Convert into OpenCV image, using RGB 8-bit (pass-through).
             frame = self.bridge.imgmsg_to_cv2(image, "bgr8")
 
+            # self.tracker.update()
+
+            # hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
+            # binary = cv2.inRange(hsv, self.hsvlimits[:,0], self.hsvlimits[:,1])
+            # # cv2.imshow("binary", binary)
+            # # cv2.waitKey(0)
+            # self.pubbin.publish(self.bridge.cv2_to_imgmsg(binary))
+            
             red, white, blue, black = preprocess_image(frame)
 
             red_contours = find_chips(frame, red, "red")
@@ -79,7 +138,7 @@ class ChipDetectorNode(Detector):
             blue_contours = find_chips(frame, blue, "blue")
             black_contours = find_chips(frame, black, "black")
 
-            # self.get_logger().info(f"{len(red_contours)}, {len(white_contours)}, {len(blue_contours)}, {len(black_contours)}")
+            self.get_logger().info(f"{len(red_contours)}, {len(white_contours)}, {len(blue_contours)}, {len(black_contours)}")
             # contours = red_contours + white_contours + blue_contours + black_contours
             # cv2.drawContours(frame, contours, -1, (0, 0, 255), 3)
             # cv2.imshow("contours", frame)
@@ -111,7 +170,7 @@ class ChipDetectorNode(Detector):
 
         chips = []
         for chip, coords in chip_to_coords_map.items():
-            if len(coords[0]) > 0.8 * len(self.prev_images):
+            if len(coords[0]) > 0.6 * len(self.prev_images):
                 average_chip = Chip(chip.color, (np.average(coords[0]), np.average(coords[1]), 0.0))
                 chips.append(average_chip)
                 self.get_logger().info(average_chip.to_string())

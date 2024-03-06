@@ -11,11 +11,11 @@ from brain.game.Player import Player
 PLAYERS = [Player(1, [(-0.44, 0.38), (-0.35, 0.53)], [(-0.555, 0.38), (-0.44, 0.53)]),
            Player(2, [(-0.20, 0.53), (-0.05, 0.63)], [(-0.20, 0.63), (-0.05, 0.74)]),
            Player(3, [(0.18, 0.53), (0.53, 0.63)], [(0.18, 0.63), (0.35, 0.74)]),
-           Player("robot", [(0.17, 0.21), (0.27, 0.36)], [(0.27, 0.21), (0.40, 0.36)])]
+           Player("robot", [(0.17, 0.21), (0.27, 0.36)], [(0.47, 0.28), (0.59, 0.46)])]
 
 
 # The constant location of the deck
-DECK_LOCATION = np.array([-0.64, 0.045, 0.0]).reshape(3, 1)
+DECK_LOCATION = np.array([-0.35, 0.05, 0.0]).reshape(3, 1)
 
 # The size of a card
 CARD_SIZE = (0.06, 0.09)

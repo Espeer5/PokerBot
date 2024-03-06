@@ -18,7 +18,7 @@ from launch.actions                    import Shutdown
 from launch_ros.actions                import Node
 
 
-from utils.constants import ACTUAL_RSP, NODE_HEBI
+from utils.constants import ACTUAL_RSP, NODE_HEBI, NODE_USBCAM
 
 #
 # Generate the Launch Description
@@ -26,31 +26,6 @@ from utils.constants import ACTUAL_RSP, NODE_HEBI
 def generate_launch_description():
     ######################################################################
     # PREPARE THE LAUNCH ELEMENTS
-
-    # Configure the USB camera node
-    USBCamNode = Node(
-        name       = 'usb_cam', 
-        package    = 'usb_cam',
-        executable = 'usb_cam_node_exe',
-        namespace  = 'usb_cam',
-        output     = 'screen',
-        parameters = [{'camera_name':         'logitech'},
-                      {'video_device':        '/dev/video0'},
-                      {'pixel_format':        'yuyv2rgb'},
-                      {'image_width':         800},
-                      {'image_height':        600},
-                      {'framerate':           15.0},
-                      {'brightness':          -1},
-                      {'contrast':            -1},
-                      {'saturation':          -1},
-                      {'sharpness':           -1},
-                      {'gain':                30},
-                      {'auto_white_balance':  False},
-                      {'white_balance':       3200},
-                      {'autoexposure':        False},
-                      {'exposure':            250},
-                      {'autofocus':           True},
-                      {'focus':               -1}])
 
     # Configure the BackCardDetector
     BackCardDetectorNode = Node(
@@ -103,7 +78,7 @@ def generate_launch_description():
     # Return the description, built as a python list.
     return LaunchDescription([
         # Start the nodes.
-        USBCamNode,
+        NODE_USBCAM,
         # BackCardDetectorNode,
         # CardDetectorNode,
         ChipDetectorNode,

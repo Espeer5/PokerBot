@@ -15,7 +15,8 @@ class Game():
     def __init__(self, node):
         self.node = node
         self.node.get_logger().info("Game initialized")
-        self.players = self.detect_active_players()
+        #self.players = self.detect_active_players()
+        self.players = PLAYERS
         # self.node.get_logger().info(f"Active players: {[p.chip_box for p in self.players]}")
         # self.dealer_idx = 0
         # self.curr_state = 
@@ -36,37 +37,42 @@ class Game():
                         and player.chip_box[0][1] <= chip.coords[1] <= player.chip_box[1][1]):
                         player_set.append(player)
                         self.node.get_logger().info(f"chip: {chip.coords}, player: {player.player_id}")
-            # sort the players in order of x-coordinates, least to greates
+            # sort the players in order of x-coordinates, least to greatest
             player_set.sort()
         return player_set
 
     def run(self):
         while True:
-            # # Initialize dealing states
-            # dealer = Dealer(self.node, self.players)
+            # Initialize dealing states
+            dealer = Dealer(self.node, self.players)
 
-            # # Deal player hands
-            # dealer.run()
+            # Deal player hands
+            #dealer.run()
 
-            while True:
-                betting = Betting(self.node, self.players)
-                is_showdown, self.players = betting.run()
+            ccards_dealer = CommunityCardsDealer(self.node)
+            ccards_dealer.run()
+
+            break
+
+            # while True:
+            #     betting = Betting(self.node, self.players)
+            #     is_showdown, self.players = betting.run()
                     
-                if len(self.players) == 1:
-                    payout = Payout(self.players[0])
-                    payout.run()
-                    break
+            #     if len(self.players) == 1:
+            #         payout = Payout(self.players[0])
+            #         payout.run()
+            #         break
 
-                if is_showdown:
-                    showdown = Showdown(players=self.players, community_cards=None)
-                    winning_player = showdown.run()
+            #     if is_showdown:
+            #         showdown = Showdown(players=self.players, community_cards=None)
+            #         winning_player = showdown.run()
 
-                    payout = Payout(winning_player)
-                    payout.run()
-                    break
+            #         payout = Payout(winning_player)
+            #         payout.run()
+            #         break
 
-                ccards_dealer = CommunityCardsDealer()
-                ccards_dealer.run()
+            #     ccards_dealer = CommunityCardsDealer()
+            #     ccards_dealer.run()
 
 
 

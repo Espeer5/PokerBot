@@ -24,13 +24,12 @@ def load_chip_descriptors_from_json():
 
 def preprocess_image(image):
     """Returns a grayed, blurred, and adaptively thresholded camera image."""
-    image = cv2.GaussianBlur(image,(5,5),0)
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
 
-    red_range = np.array([[0, 10], [60, 200], [90, 210]])
-    white_range = np.array([[98, 120], [5, 60], [150, 255]])
-    blue_range = np.array([[100, 125], [60, 185], [100, 200]])
-    black_range = np.array([[100, 120], [0, 255], [0, 150]])
+    red_range = np.array([[110, 125], [60, 235], [90, 155]])
+    white_range = np.array([[0, 30], [0, 50], [138, 197]])
+    blue_range = np.array([[0, 20], [90, 255], [50, 150]])
+    black_range = np.array([[0, 30], [20, 155], [10, 95]])
 
     def threshold_and_process(image, color_range, erode=0, dilate=0):
         color = cv2.inRange(image, color_range[:,0], color_range[:,1])
@@ -39,24 +38,15 @@ def preprocess_image(image):
         if dilate > 0:
             color = cv2.dilate(color, morph_ellipse, iterations=dilate)
 
-        cv2.imshow("color0", color)
         if erode > 0:
             color = cv2.erode(color, morph_ellipse, iterations=erode)
         return color
 
 
-    red = threshold_and_process(image, red_range, erode=5)
-    cv2.imshow("color", red)
-    cv2.waitKey(0)
-    white = threshold_and_process(image, white_range, erode=5)
-    cv2.imshow("color", white)
-    cv2.waitKey(0)
-    blue = threshold_and_process(image, blue_range, erode=5)
-    # cv2.imshow("color", blue)
-    # cv2.waitKey(0)
-    black = threshold_and_process(image, black_range, erode=5)
-    # cv2.imshow("color", black)
-    # cv2.waitKey(0)
+    red = threshold_and_process(image, red_range, erode=3)
+    white = threshold_and_process(image, white_range, erode=3)
+    blue = threshold_and_process(image, blue_range, erode=4)
+    black = threshold_and_process(image, black_range, erode=3)
 
     return red, white, blue, black
 

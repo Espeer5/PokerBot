@@ -60,7 +60,7 @@ def generate_launch_description():
     return LaunchDescription([
         NODE_USBCAM,
         BackCardDetectorNode,
-        ChipDetectorNode,
+        #ChipDetectorNode,
         CardDetectorNode,
         ACTUAL_RSP,
         # NODE_RVIZ,

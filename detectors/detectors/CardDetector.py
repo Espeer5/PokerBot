@@ -16,7 +16,7 @@ from detectors.message_types.CardPose import CardPose
 from utils.TransformHelpers import *
 
 
-MINAREA = 1000
+MINAREA = 800
 
 #
 #  Detector Node Class
