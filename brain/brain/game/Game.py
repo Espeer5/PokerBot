@@ -17,6 +17,7 @@ class Game():
         self.node.get_logger().info("Game initialized")
         #self.players = self.detect_active_players()
         self.players = PLAYERS
+        self.ccards = [("Two", "Hearts"), ("Queen", "Clubs"), ("Ten", "Hearts"), ("Three", "Spades"), ("Nine", "Hearts")]
         # self.node.get_logger().info(f"Active players: {[p.chip_box for p in self.players]}")
         # self.dealer_idx = 0
         # self.curr_state = 
@@ -43,36 +44,36 @@ class Game():
 
     def run(self):
         while True:
-            # Initialize dealing states
+            # # Initialize dealing states
             dealer = Dealer(self.node, self.players)
 
             # Deal player hands
-            #dealer.run()
+            dealer.run()
 
             ccards_dealer = CommunityCardsDealer(self.node)
-            ccards_dealer.run()
+            self.ccards += ccards_dealer.run()
 
-            break
-
-            # while True:
-            #     betting = Betting(self.node, self.players)
-            #     is_showdown, self.players = betting.run()
+            while True:
+                betting = Betting(self.node, self.players)
+                self.node.get_logger().info("Starting betting...")
+                is_showdown, self.players = betting.run()
+                self.node.get_logger().info("Finished betting...")
                     
-            #     if len(self.players) == 1:
-            #         payout = Payout(self.players[0])
-            #         payout.run()
-            #         break
+                if len(self.players) == 1:
+                    payout = Payout(self.players[0])
+                    payout.run()
+                    break
 
-            #     if is_showdown:
-            #         showdown = Showdown(players=self.players, community_cards=None)
-            #         winning_player = showdown.run()
+                if is_showdown:
+                    showdown = Showdown(self.node, self.players, self.ccards)
+                    winning_player = showdown.run()
+                    self.node.get_logger().info(f"Player {winning_player.player_id} has won the round!")
 
-            #         payout = Payout(winning_player)
-            #         payout.run()
-            #         break
+                    payout = Payout(winning_player)
+                    payout.run()
+                    break
 
-            #     ccards_dealer = CommunityCardsDealer()
-            #     ccards_dealer.run()
+                self.ccards += ccards_dealer.run()
 
 
 

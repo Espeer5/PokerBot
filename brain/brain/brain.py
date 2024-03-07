@@ -45,6 +45,9 @@ class BrainNode(Node):
         # Create a service for interacting with the FOC detector node
         self.foc_cli = self.create_client(Trigger, '/foc_detector')
 
+        # Create a service for interacting with the BTN detector node
+        self.btn_cli = self.create_client(Trigger, '/btn_detector')
+
         self.chain = GET_CHAIN(self)
         self.goal1 = np.array([-0.3, 0.2, 0.01]).reshape(3, 1)
         self.goal2 = np.array([0.3, 0.2, 0.0]).reshape(3, 1)
@@ -139,6 +142,19 @@ class BrainNode(Node):
         if msg not in ["No cards found", "No image available"]:
             return CardMessage.from_string(msg)
         return None
+    
+
+    def get_btn(self):
+        """
+        Get the list of all the chips and their locations in the workspace.
+        """
+        req = Trigger.Request()
+        future = self.btn_cli.call_async(req)
+        rclpy.spin_until_future_complete(self, future)
+        msg = future.result().message
+        if msg is not None and len(msg) > 0:
+            return [float(coord) for coord in msg.split(", ")]
+        return None
 
 
 def main(args=None):
@@ -162,12 +178,12 @@ def main(args=None):
     #     node.get_logger().info("RAN")
     #     sleep(1)
     #     node.get_logger().info(f"{node.get_foc()}")
-    # game = Game(node)
-    # game.run()
-    while True:
-        node.get_logger().info("RAN")
-        sleep(1)
-        node.get_logger().info(f"{node.get_ch()}")
+    game = Game(node)
+    game.run()
+    # while True:
+    #     node.get_logger().info("RAN")
+    #     sleep(1)
+    #     node.get_logger().info(f"{node.get_ch()}")
     # Spin the node so the callback function is called.
     rclpy.spin(node)
 

@@ -55,13 +55,12 @@ class CardDetectorNode(Detector):
 
         # Convert into OpenCV image, using RGB 8-bit (pass-through).
         frame = self.bridge.imgmsg_to_cv2(image, "passthrough")
-
         processed_image = preprocess_image(frame)
         card_contours = find_cards(processed_image)
         cards = []
         for contour in card_contours:
             card_image = extract_card_from_image(frame, contour)
-            if len(card_image) > 0:
+            if card_image is not None:
                 card_image = cv2.cvtColor(card_image, cv2.COLOR_BGR2GRAY)
 
                 rank, suit = identify_card(card_image)

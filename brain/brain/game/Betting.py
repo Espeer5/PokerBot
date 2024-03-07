@@ -2,11 +2,12 @@ import numpy as np
 
 
 class Betting():
-    POT_LOCATION = [(-0.25, 0.20), (0.15, 0.50)]
+    POT_LOCATION = [(-0.25, 0.20), (0.25, 0.50)]
     SMALL_BLIND = 1
     BIG_BLIND = 2
 
     def __init__(self, node, active_players):
+        node.get_logger().info("Betting initialized")
         self.node = node
         self.prev_state = "dealing"
         self.players = active_players
@@ -16,7 +17,7 @@ class Betting():
     def in_pot(self, chip_location):
         x, y, _ = chip_location
         (x0, y0), (x1, y1) = self.POT_LOCATION
-        return x0 <= x and x <= x1 and y0 <= y and y <= y1
+        return x0 <= x <= x1 and y0 <= y <= y1
     
     def get_chip_value(self, chip):
         if chip.color == "blue":
@@ -33,7 +34,7 @@ class Betting():
     def in_players_card_box(self, player, card_location):
         x, y, _ = card_location
         (x0, y0), (x1, y1) = player.card_box
-        return x0 <= x and x <= x1 and y0 <= y and y <= y1
+        return x0 <= x <= x1 and y0 <= y  <= y1
 
     def detect_fold(self, player):
         message = None
@@ -51,14 +52,10 @@ class Betting():
         closest_player = None
 
         while button is None:
-            self.node.get_logger().info(f"looking")
-            chip_message = self.node.get_ch()
-            for chip in chip_message.chips:
-                if chip.color == "red":
-                    button = chip
-                    break
+            button_msg = self.node.get_btn()
+            button = button_msg
 
-        x, y, _ = button.coords
+        x, y, _ = button
         button_point = np.array([x, y]).reshape(2, 1)
 
         closest_distance = np.inf
@@ -74,8 +71,18 @@ class Betting():
                 closest_distance = curr_distance
                 closest_player = player
 
-        self.node.get_logger().info(f"player {closest_player.player_id} is betting...")
         return button, closest_player
+    
+    def is_betting_over(self, player_bet_amounts):
+        if len(self.players) == 1:
+            return True
+
+        curr_amount = player_bet_amounts[self.players[0]]
+        for player, bet_amount in player_bet_amounts.items():
+            if player in self.players:
+                if bet_amount == 0 or bet_amount != curr_amount:
+                    return False
+        return True
 
     def run(self):
         num_bets = 0
@@ -84,41 +91,53 @@ class Betting():
         curr_index = self.players.index(curr_bettor)
 
         curr_pot_size = self.detect_chips_in_pot()
-        curr_min_bid = self.SMALL_BLIND if self.prev_state is "dealing" else 0
+        curr_min_bet = self.SMALL_BLIND if self.prev_state is "dealing" else 0
 
-        while num_bets < len(self.players):
+        player_bet_amounts = {player: 0 for player in self.players}
+
+        while not self.is_betting_over(player_bet_amounts):
 
             new_button, new_bettor = self.detect_curr_bettor()
             if curr_bettor != new_bettor:
+                self.node.get_logger().info(f"player {new_bettor.player_id} is betting...")
 
                 new_pot_size = self.detect_chips_in_pot()
                 new_bettor_is_next = new_bettor == self.players[(curr_index + 1) % len(self.players)]
                 new_bet = new_pot_size - curr_pot_size
-                bet_is_large_enough = new_bet >= curr_min_bid
+
+                bet_is_large_enough = player_bet_amounts[curr_bettor] + new_bet >= curr_min_bet
                 curr_bettor_has_folded = self.detect_fold(curr_bettor)
                 if new_bettor_is_next and (bet_is_large_enough or curr_bettor_has_folded):
                     if curr_bettor_has_folded:
                         self.node.get_logger().info(f"player {curr_bettor.player_id} has folded")
                         self.players.remove(curr_bettor)
                     else:
-                        self.node.get_logger().info(f"player {curr_bettor.player_id} bet {new_bet}")
+                        player_bet_amounts[curr_bettor] += new_bet
+                        self.node.get_logger().info(f"player {curr_bettor.player_id} bet {new_bet}, total this round: {player_bet_amounts[curr_bettor]}")
                         if self.prev_state == "dealing" and num_bets == 0:
-                            curr_min_bid = self.BIG_BLIND
+                            curr_min_bet = self.BIG_BLIND
                         else:
-                            new_bet_is_raise = new_bet > curr_min_bid
+                            new_bet_is_raise = new_bet > curr_min_bet
                             if new_bet_is_raise:
-                                self.node.get_logger().info(f"player {curr_bettor.player_id} raised to {new_bet} from {curr_min_bid}")
-                                curr_min_bid = new_bet
-                                num_bets = 0
+                                self.node.get_logger().info(f"player {curr_bettor.player_id} raised to {new_bet} from {curr_min_bet}")
+                                curr_min_bet = new_bet
 
-                    
+                    curr_pot_size = new_pot_size
                     curr_bettor = new_bettor
-                    curr_index = (curr_index + 1) % len(self.players)
+                    curr_button = new_button
+                    curr_index = self.players.index(curr_bettor)
                     num_bets += 1
                 else:
-                    self.node.act_at(np.array(new_button.coords).reshape(3, 1), 0, "GB_CHIP")
-                    self.node.act_at(np.array(curr_button.coords).reshape(3, 1), 0, "DROP")
+                    if not new_bettor_is_next:
+                        self.node.get_logger().info(f"{new_bettor.player_id} is not next! {self.players[(curr_index + 1) % len(self.players)].player_id} is next!")
 
+                    if not bet_is_large_enough:
+                        self.node.get_logger().info(f"{new_bet} is smaller than minimum bet size {curr_min_bet}")
+    
+                    # self.node.act_at(np.array(new_button).reshape(3, 1), 0, "GB_CHIP")
+                    # self.node.act_at(np.array(curr_button).reshape(3, 1), 0, "DROP")
+
+        self.node.get_logger().info(f"{player_bet_amounts}")
 
         if self.prev_state == "dealing":
             self.prev_state = "not dealing"

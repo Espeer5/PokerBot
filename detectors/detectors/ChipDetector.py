@@ -96,10 +96,12 @@ class ChipDetectorNode(Detector):
         load_chip_descriptors_from_json()
         # self.pubbin = self.create_publisher(Image, name+'/binary',    3)
 
+        # 85-95, 120-190, 151-214
+
         # Provice the /ch_detector service for the brain node to request the 
         # locations of all chips showing
         self.ch_service = self.create_service(Trigger, '/ch_detector', self.ch_callback)
-        self.hsvlimits = np.array([[20, 30], [90, 170], [60, 255]])
+        # self.hsvlimits = np.array([[20, 30], [90, 170], [60, 255]])
         # self.tracker = HSVTracker(self.hsvlimits)
 
         # Report.
@@ -138,7 +140,14 @@ class ChipDetectorNode(Detector):
             blue_contours = find_chips(frame, blue, "blue")
             black_contours = find_chips(frame, black, "black")
 
-            self.get_logger().info(f"{len(red_contours)}, {len(white_contours)}, {len(blue_contours)}, {len(black_contours)}")
+            # contours_frame = frame = self.bridge.imgmsg_to_cv2(self.prev_images[-1], "bgr8")
+            # contours = red_contours + white_contours + blue_contours + black_contours
+            # cv2.drawContours(contours_frame, contours, -1, (0, 0, 255), 3)
+            # cv2.imshow("contours", contours_frame)
+            # cv2.waitKey(0)
+            
+
+            # self.get_logger().info(f"{len(red_contours)}, {len(white_contours)}, {len(blue_contours)}, {len(black_contours)}")
             # contours = red_contours + white_contours + blue_contours + black_contours
             # cv2.drawContours(frame, contours, -1, (0, 0, 255), 3)
             # cv2.imshow("contours", frame)
@@ -173,7 +182,7 @@ class ChipDetectorNode(Detector):
             if len(coords[0]) > 0.6 * len(self.prev_images):
                 average_chip = Chip(chip.color, (np.average(coords[0]), np.average(coords[1]), 0.0))
                 chips.append(average_chip)
-                self.get_logger().info(average_chip.to_string())
+                # self.get_logger().info(average_chip.to_string())
 
                 x_values = []
                 y_values = []
@@ -187,14 +196,13 @@ class ChipDetectorNode(Detector):
                 elif chip.color == "blue":
                     color = self.blue
                 elif chip.color == "white":
-                    color = self.white
-                elif chip.color == "black":
                     color = self.black
+                elif chip.color == "black":
+                    color = self.white
                 cv2.circle(debugging_frame, (round(np.average(x_values)), round(np.average(y_values))), 15, color, 1)
 
-        self.get_logger().info(f"{len(chips)}")
-        cv2.imshow("debug", debugging_frame)
-        cv2.waitKey(0)
+        # cv2.imshow("debug", debugging_frame)
+        # cv2.waitKey(0)
 
         response.message = ChipMessage(chips).to_string()
         return response

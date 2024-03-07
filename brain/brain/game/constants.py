@@ -42,6 +42,9 @@ def find_card(node):
         Finds a card close to the flip location using the card detector
         """
         loc = None
+        theta = None
+        rank = None
+        suit = None
         while loc is None:
             cards = node.get_foc()
             if cards is not None:
@@ -53,10 +56,12 @@ def find_card(node):
                     # flipping location
                     if (FLIP_BOUND_BOX[0][0] <= pot_loc[0] <= FLIP_BOUND_BOX[1][0] and
                         FLIP_BOUND_BOX[0][1] <= pot_loc[1] <= FLIP_BOUND_BOX[1][1]):
+                        rank = card.rank
+                        suit = card.suit
                         loc = np.array(pot_loc).reshape(3, 1) + np.array([0.0, 0.03, 0.0]).reshape(3, 1)
                         theta = card.pose.theta
                         break
-        return loc, theta
+        return loc, theta, (rank, suit)
 
 
 def get_card_locations_from_card_box(card_box, raised=False):

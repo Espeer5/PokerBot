@@ -55,7 +55,7 @@ def preprocess_image(image):
     # than that. This allows the threshold to adapt to the lighting conditions.
     # img_w, img_h = np.shape(image)[:2]
     # bkg_level = gray[img_w // 2][img_h // 2]
-    bkg_level = 85
+    bkg_level = 18
     thresh_level = bkg_level + BKG_THRESH
 
     retval, thresh = cv2.threshold(blur,thresh_level,255,cv2.THRESH_BINARY)
@@ -108,12 +108,11 @@ def extract_card_from_image(image, contour):
 
     image = image[y:y+h, x:x+w]
 
-    if len(image) > 0:
+    if np.sum(image) > 0:
         image = cv2.resize(image, (200, 300),
                 interpolation = cv2.INTER_LINEAR)
-
-    return image
-
+        return image
+    return None
 
 # def preprocess_card(contour, image):
 #     """Uses contour to find information about the query card."""
@@ -148,7 +147,7 @@ def identify_card(card_image):
             best_name = name
 
     best_rank, best_suit = best_name.split("_of_")
-    # print(best_num_matches)
+
     if best_num_matches < 50:
         return None, None
     return best_rank, best_suit

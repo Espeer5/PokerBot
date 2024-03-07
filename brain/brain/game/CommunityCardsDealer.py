@@ -17,35 +17,41 @@ class State(Enum):
 class CommunityCardsDealer():
 
     def __init__(self, node):
-        self.curr_state = State.FLOP
+        # self.curr_state = State.FLOP
+        self.curr_state = State.TURN
         self.node = node
 
     def run(self):
         if self.curr_state == State.FLOP:
+            card_info = []
             for i in range(3):
                 self.node.act_at(DECK_LOCATION, np.pi/2, "GB_CARD")
                 self.node.act_at(FLIP_LOC, 0.0, "FLIP")
-                loc, theta = find_card(self.node)
+                loc, theta, (rank, suit) = find_card(self.node)
+                card_info.append((rank, suit))
+                self.node.get_logger().info(f"{rank} of {suit}")
                 self.node.act_at(loc, theta, "GB_CARD")
                 self.node.act_at(FLOP_LOCATIONS[i], 0.0, "DROP")
                 sleep(4)
             self.curr_state = State.TURN
-            return
+            return card_info
 
         elif self.curr_state == State.TURN:
             self.node.act_at(DECK_LOCATION, np.pi/2, "GB_CARD")
             self.node.act_at(FLIP_LOC, 0.0, "FLIP")
-            loc, theta = find_card(self.node)
+            loc, theta, (rank, suit) = find_card(self.node)
+            self.node.get_logger().info(f"{rank} of {suit}")
             self.node.act_at(loc, theta, "GB_CARD")
             self.node.act_at(TURN_LOCATION, 0.0, "DROP")
             self.curr_state = State.RIVER
-            return
+            return [(rank, suit)]
 
         elif self.curr_state == State.RIVER:
             self.node.act_at(DECK_LOCATION, np.pi/2, "GB_CARD")
             self.node.act_at(FLIP_LOC, 0.0, "FLIP")
-            loc, theta = find_card(self.node)
+            loc, theta, (rank, suit) = find_card(self.node)
+            self.node.get_logger().info(f"{rank} of {suit}")
             self.node.act_at(loc, theta, "GB_CARD")
             self.node.act_at(RIVER_LOCATION, 0.0, "DROP")
             self.curr_state == State.FLOP
-            return 
+            return [(rank, suit)]

@@ -38,6 +38,14 @@ def generate_launch_description():
         output     = 'screen',
         remappings = [('/image_raw', '/usb_cam/image_raw')]
     )
+
+    ButtonDetectorNode = Node(
+        name       = 'ButtonDetector', 
+        package    = 'detectors',
+        executable = 'ButtonDetector',
+        output     = 'screen',
+        remappings = [('/image_raw', '/usb_cam/image_raw')]
+    )
     
     # Configure the BackCardDetector
     BackCardDetectorNode = Node(
@@ -60,8 +68,9 @@ def generate_launch_description():
     return LaunchDescription([
         NODE_USBCAM,
         BackCardDetectorNode,
-        #ChipDetectorNode,
+        ChipDetectorNode,
         CardDetectorNode,
+        ButtonDetectorNode,
         ACTUAL_RSP,
         # NODE_RVIZ,
         NODE_HEBI,

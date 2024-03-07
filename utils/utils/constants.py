@@ -235,3 +235,27 @@ NODE_USBCAM = launch_ros.actions.Node(
                     {'exposure':            250},
                     {'autofocus':           True},
                     {'focus':               -1}])
+
+NODE_BOXCAM = launch_ros.actions.Node(
+    name = "box_cam",
+    package = "usb_cam",
+    executable = "usb_cam_node_exe",
+    namespace = "box_cam",
+    output = "screen",
+    parameters = [{'camera_name':         'logitech'},
+                    {'video_device':        '/dev/video2'},
+                    {'pixel_format':        'yuyv2rgb'},
+                    {'image_width':         800},
+                    {'image_height':        600},
+                    {'framerate':           15.0},
+                    {'brightness':          -1},
+                    {'contrast':            -1},
+                    {'saturation':          -1},
+                    {'sharpness':           -1},
+                    {'gain':                20},
+                    {'auto_white_balance':  True},
+                    {'white_balance':       -1},
+                    {'autoexposure':        False},
+                    {'exposure':            -1},
+                    {'autofocus':           True},
+                    {'focus':               -1}])

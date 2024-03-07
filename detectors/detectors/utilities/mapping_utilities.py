@@ -33,11 +33,24 @@ def pixelToWorld(image, u, v, x0, y0, annotateImage=False):
         cv2.waitKey(0)
 
     # Abort if not all markers are detected.
-    if (markerIds is None or len(markerIds) != 4 or
-        set(markerIds.flatten()) != set([1,2,3,4])):
+
+    # if (markerIds is None or len(markerIds) != 4 or
+    #     set(markerIds.flatten()) != set([1,2,3,4])):
+    if markerIds is None or not set([1,2,3,4]).issubset(set(markerIds.flatten())):
         print(markerIds)
         print("OBSCURED MARKERS")
         return None
+    
+
+    newMarkerCorners = []
+    newMarkerIds = []
+    for corner, id in zip(markerCorners, markerIds):
+        if id in [1, 2, 3, 4]:
+            newMarkerCorners.append(corner)
+            newMarkerIds.append(id)
+
+    markerCorners = newMarkerCorners
+    markerIds = newMarkerIds
 
 
     # Determine the center of the marker pixel coordinates.

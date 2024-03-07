@@ -18,3 +18,11 @@ class Player():
         elif other.player_id == "robot":
             return True
         return self.player_id < other.player_id
+    
+    def __hash__(self):
+        if self.player_id == "robot":
+            return hash(self.player_id)
+        return self.player_id
+    
+    def __str__(self):
+        return str(self.player_id)

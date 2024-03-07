@@ -71,7 +71,7 @@ class BackCardDetectorNode(Detector):
         card_poses = set()
         for contour in card_contours:
             card_image = extract_card_from_image(frame, contour)
-            if len(card_image) > 0:
+            if card_image is not None:
                 card_image = cv2.cvtColor(card_image, cv2.COLOR_BGR2GRAY)
 
                 if is_back_of_card(card_image):

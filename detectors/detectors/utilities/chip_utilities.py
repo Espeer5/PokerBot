@@ -62,7 +62,7 @@ def find_chips(image, thresh_image, color):
         circle_size = np.pi * r**2
         size = cv2.contourArea(contour)
 
-        if size <= CHIP_MAX_SIZE:
+        if CHIP_MIN_SIZE <= size <= CHIP_MAX_SIZE:
             chip_image = extract_chip_from_image(image, contour)
             if len(chip_image) > 0:
                 # reference = cv2.imread(f"{pkgdir('detectors')}/card_images/BlackChip.jpg")

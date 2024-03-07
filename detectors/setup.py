@@ -33,7 +33,7 @@ setup(
             'BackCardDetector  = detectors.BackCardDetector:main',
             'ChipDetector  = detectors.ChipDetector:main',
             'CardDetector  = detectors.CardDetector:main',
-            # 'BackCardDetector  = detectors.BackCardDetector:main',
+            'ButtonDetector  = detectors.ButtonDetector:main',
         ],
     },
 )
