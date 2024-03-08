@@ -1,4 +1,5 @@
 import numpy as np
+import rclpy
 
 
 class Betting():
@@ -6,12 +7,12 @@ class Betting():
     SMALL_BLIND = 1
     BIG_BLIND = 2
 
-    def __init__(self, node, active_players):
+    def __init__(self, node, active_players, chips_in_pot, is_first_round):
         node.get_logger().info("Betting initialized")
         self.node = node
-        self.prev_state = "dealing"
+        self.is_first_round = is_first_round
         self.players = active_players
-        self.chips_in_pot = self.detect_chips_in_pot()
+        self.chips_in_pot = chips_in_pot
         self.num_rounds_of_betting = 0
     
     def in_pot(self, chip_location):
@@ -73,9 +74,12 @@ class Betting():
 
         return button, closest_player
     
-    def is_betting_over(self, player_bet_amounts):
+    def is_betting_over(self, player_bet_amounts, num_bets):
         if len(self.players) == 1:
             return True
+
+        if num_bets < len(player_bet_amounts.keys()):
+            return False
 
         curr_amount = player_bet_amounts[self.players[0]]
         for player, bet_amount in player_bet_amounts.items():
@@ -90,12 +94,12 @@ class Betting():
         self.node.get_logger().info(f"player {curr_bettor.player_id} is betting...")
         curr_index = self.players.index(curr_bettor)
 
-        curr_pot_size = self.detect_chips_in_pot()
-        curr_min_bet = self.SMALL_BLIND if self.prev_state is "dealing" else 0
+        curr_pot_size = self.chips_in_pot
+        curr_min_bet = self.SMALL_BLIND if self.is_first_round else 0
 
         player_bet_amounts = {player: 0 for player in self.players}
 
-        while not self.is_betting_over(player_bet_amounts):
+        while not self.is_betting_over(player_bet_amounts, num_bets):
 
             new_button, new_bettor = self.detect_curr_bettor()
             if curr_bettor != new_bettor:
@@ -108,13 +112,13 @@ class Betting():
                 bet_is_large_enough = player_bet_amounts[curr_bettor] + new_bet >= curr_min_bet
                 curr_bettor_has_folded = self.detect_fold(curr_bettor)
                 if new_bettor_is_next and (bet_is_large_enough or curr_bettor_has_folded):
-                    if curr_bettor_has_folded:
+                    if not bet_is_large_enough and curr_bettor_has_folded:
                         self.node.get_logger().info(f"player {curr_bettor.player_id} has folded")
                         self.players.remove(curr_bettor)
                     else:
                         player_bet_amounts[curr_bettor] += new_bet
                         self.node.get_logger().info(f"player {curr_bettor.player_id} bet {new_bet}, total this round: {player_bet_amounts[curr_bettor]}")
-                        if self.prev_state == "dealing" and num_bets == 0:
+                        if self.is_first_round and num_bets == 0:
                             curr_min_bet = self.BIG_BLIND
                         else:
                             new_bet_is_raise = new_bet > curr_min_bet
@@ -134,14 +138,15 @@ class Betting():
                     if not bet_is_large_enough:
                         self.node.get_logger().info(f"{new_bet} is smaller than minimum bet size {curr_min_bet}")
     
-                    # self.node.act_at(np.array(new_button).reshape(3, 1), 0, "GB_CHIP")
-                    # self.node.act_at(np.array(curr_button).reshape(3, 1), 0, "DROP")
+                    self.node.act_at(np.array(new_button).reshape(3, 1), 0, "GB_CHIP")
+                    wait_ID = self.node.act_at(np.array(curr_button).reshape(3, 1), 0, "DROP")
+
+                    while self.node.prev_complete != wait_ID:
+                        rclpy.spin_once(self.node)
+                        # pass
 
         self.node.get_logger().info(f"{player_bet_amounts}")
 
-        if self.prev_state == "dealing":
-            self.prev_state = "not dealing"
-
         self.num_rounds_of_betting += 1
         is_showdown = self.num_rounds_of_betting == 4
-        return is_showdown, self.players
+        return is_showdown, self.players, curr_pot_size

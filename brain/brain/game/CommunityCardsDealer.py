@@ -1,6 +1,7 @@
 from enum import Enum
 import numpy as np
 from time import sleep
+import rclpy
 # from brain.brain import act_at
 
 from brain.game.constants import find_card
@@ -17,8 +18,7 @@ class State(Enum):
 class CommunityCardsDealer():
 
     def __init__(self, node):
-        # self.curr_state = State.FLOP
-        self.curr_state = State.TURN
+        self.curr_state = State.FLOP
         self.node = node
 
     def run(self):
@@ -26,7 +26,10 @@ class CommunityCardsDealer():
             card_info = []
             for i in range(3):
                 self.node.act_at(DECK_LOCATION, np.pi/2, "GB_CARD")
-                self.node.act_at(FLIP_LOC, 0.0, "FLIP")
+                wait_ID = self.node.act_at(FLIP_LOC, 0.0, "FLIP")
+                while self.node.prev_complete != wait_ID:
+                    rclpy.spin_once(self.node)
+                    # pass
                 loc, theta, (rank, suit) = find_card(self.node)
                 card_info.append((rank, suit))
                 self.node.get_logger().info(f"{rank} of {suit}")
@@ -38,7 +41,10 @@ class CommunityCardsDealer():
 
         elif self.curr_state == State.TURN:
             self.node.act_at(DECK_LOCATION, np.pi/2, "GB_CARD")
-            self.node.act_at(FLIP_LOC, 0.0, "FLIP")
+            wait_ID = self.node.act_at(FLIP_LOC, 0.0, "FLIP")
+            while self.node.prev_complete != wait_ID:
+                rclpy.spin_once(self.node)
+                # pass
             loc, theta, (rank, suit) = find_card(self.node)
             self.node.get_logger().info(f"{rank} of {suit}")
             self.node.act_at(loc, theta, "GB_CARD")
@@ -48,7 +54,10 @@ class CommunityCardsDealer():
 
         elif self.curr_state == State.RIVER:
             self.node.act_at(DECK_LOCATION, np.pi/2, "GB_CARD")
-            self.node.act_at(FLIP_LOC, 0.0, "FLIP")
+            wait_ID = self.node.act_at(FLIP_LOC, 0.0, "FLIP")
+            while self.node.prev_complete != wait_ID:
+                rclpy.spin_once(self.node)
+                # pass
             loc, theta, (rank, suit) = find_card(self.node)
             self.node.get_logger().info(f"{rank} of {suit}")
             self.node.act_at(loc, theta, "GB_CARD")

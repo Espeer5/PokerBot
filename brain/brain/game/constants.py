@@ -11,23 +11,31 @@ from brain.game.Player import Player
 PLAYERS = [Player(1, [(-0.44, 0.38), (-0.35, 0.53)], [(-0.555, 0.38), (-0.44, 0.53)]),
            Player(2, [(-0.20, 0.53), (-0.05, 0.63)], [(-0.20, 0.63), (-0.05, 0.74)]),
            Player(3, [(0.18, 0.53), (0.53, 0.63)], [(0.18, 0.63), (0.35, 0.74)]),
-           Player("robot", [(0.17, 0.21), (0.27, 0.36)], [(0.47, 0.28), (0.59, 0.46)])]
+           Player("robot", [(0.17, 0.21), (0.27, 0.36)], [(0.46, 0.3), (0.58, 0.48)])]
 
 
 # The constant location of the deck
-DECK_LOCATION = np.array([-0.35, 0.05, 0.0]).reshape(3, 1)
+DECK_LOCATION = np.array([-0.34, 0.05, 0.0]).reshape(3, 1)
 
 # The size of a card
 CARD_SIZE = (0.06, 0.09)
 
 # Community card locations
+# FLOP_LOCATIONS = [
+#                     np.array([-0.52, 0.27, 0.0]).reshape(3, 1),
+#                     np.array([-0.44, 0.27, 0.0]).reshape(3, 1),
+#                     np.array([-0.36, 0.27, 0.0]).reshape(3, 1)
+#                 ]
+# TURN_LOCATION = np.array([-0.28, 0.27, 0.0]).reshape(3, 1)
+# RIVER_LOCATION = np.array([-0.20, 0.27, 0.0]).reshape(3, 1)
+
 FLOP_LOCATIONS = [
-                    np.array([-0.52, 0.27, 0.0]).reshape(3, 1),
-                    np.array([-0.44, 0.27, 0.0]).reshape(3, 1),
-                    np.array([-0.36, 0.27, 0.0]).reshape(3, 1)
+                    np.array([-0.16, 0.25, 0.0]).reshape(3, 1),
+                    np.array([-0.08, 0.25, 0.0]).reshape(3, 1),
+                    np.array([0, 0.25, 0.0]).reshape(3, 1)
                 ]
-TURN_LOCATION = np.array([-0.28, 0.27, 0.0]).reshape(3, 1)
-RIVER_LOCATION = np.array([-0.20, 0.27, 0.0]).reshape(3, 1)
+TURN_LOCATION = np.array([0.08, 0.25, 0.0]).reshape(3, 1)
+RIVER_LOCATION = np.array([0.16, 0.25, 0.0]).reshape(3, 1)
 
 # Constant location where cards are flipped in the workspace
 FLIP_LOC = np.array([0.02, 0.55, 0.05]).reshape(3, 1)
@@ -88,7 +96,7 @@ def get_card_locations_from_card_box(card_box, raised=False):
         card2x = card1x
         card2y = y1 - vert_gap_size - (CARD_SIZE[0] / 2)
 
-        z = 0.225 if raised else 0.0
+        z = 0.22 if raised else -0.01
 
         coords1 = np.array([card1x, card1y, z]).reshape(3, 1)
         coords2 = np.array([card2x, card2y, z]).reshape(3, 1)

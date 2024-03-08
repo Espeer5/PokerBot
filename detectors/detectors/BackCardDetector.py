@@ -20,7 +20,7 @@ from rclpy.node         import Node
 from sensor_msgs.msg    import Image
 from std_srvs.srv       import Trigger
 from detectors.utilities.base_node import Detector
-from detectors.utilities.mapping_utilities import pixelToWorld
+from detectors.utilities.mapping_utilities import pixel_to_world_2
 from detectors.utilities.card_utilities import *
 from detectors.message_types.BackOfCardMessage import BackOfCardMessage
 from detectors.message_types.CardPose import CardPose
@@ -82,7 +82,7 @@ class BackCardDetectorNode(Detector):
 
                     alpha = np.radians(alpha)
 
-                    world_loc = pixelToWorld(frame, round(x), round(y), 0.0, 0.34, annotateImage=False)
+                    world_loc = pixel_to_world_2(frame, round(x), round(y))
 
                     if world_loc is not None:
                         pose = CardPose((float(world_loc[0]), float(world_loc[1]), float(-0.01)), alpha)

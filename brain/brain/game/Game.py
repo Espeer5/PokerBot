@@ -17,7 +17,7 @@ class Game():
         self.node.get_logger().info("Game initialized")
         #self.players = self.detect_active_players()
         self.players = PLAYERS
-        self.ccards = [("Two", "Hearts"), ("Queen", "Clubs"), ("Ten", "Hearts"), ("Three", "Spades"), ("Nine", "Hearts")]
+        self.ccards = []
         # self.node.get_logger().info(f"Active players: {[p.chip_box for p in self.players]}")
         # self.dealer_idx = 0
         # self.curr_state = 
@@ -44,20 +44,20 @@ class Game():
 
     def run(self):
         while True:
-            # # Initialize dealing states
+            # Initialize dealing states
             dealer = Dealer(self.node, self.players)
 
             # Deal player hands
             dealer.run()
 
             ccards_dealer = CommunityCardsDealer(self.node)
-            self.ccards += ccards_dealer.run()
 
-            while True:
-                betting = Betting(self.node, self.players)
-                self.node.get_logger().info("Starting betting...")
-                is_showdown, self.players = betting.run()
-                self.node.get_logger().info("Finished betting...")
+            pot_size = 0
+            first_round = True
+            while True: 
+                betting = Betting(self.node, self.players, pot_size, first_round)
+                is_showdown, self.players, pot_size = betting.run()
+                first_round = False
                     
                 if len(self.players) == 1:
                     payout = Payout(self.players[0])

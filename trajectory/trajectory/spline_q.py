@@ -23,12 +23,13 @@ class JointSpline():
     and velocities. The spline is generated with a time duration set by the 
     brain node such that the brain can control the maximum velocity of the robot
     """
-    def __init__(self, q0, qf, qdot0, qdotf, T, endAction=None):
+    def __init__(self, q0, qf, qdot0, qdotf, T, act_ID, endAction=None):
         self.q0 = q0
         self.qf = qf
         self.qdot0 = qdot0
         self.qdotf = qdotf
         self.T = T
+        self.act_ID = act_ID
         self.endAction = endAction
 
     def evaluate(self, t):
@@ -66,14 +67,14 @@ class JointSplineQueue():
         self.t0 = 0
         self.splines = []
 
-    def enqueue(self, q0, qf, qdot0, qdotf, T=None, endAction=None):
+    def enqueue(self, q0, qf, qdot0, qdotf, act_ID, T=None, endAction=None):
         """
         Add a joint spline to the queue with the given initial and final joint
         positions, initial and final joint velocities, and time duration.
         """
         if T == -1:
             T = d_to_time(q0, qf)
-        self.splines.append(JointSpline(q0, qf, qdot0, qdotf, T, endAction))
+        self.splines.append(JointSpline(q0, qf, qdot0, qdotf, T, act_ID, endAction))
     
     def dequeue(self):
         """
@@ -119,3 +120,9 @@ class JointSplineQueue():
         Return the last joint spline in the queue without removing.
         """
         return self.splines[-1]
+    
+    def peek_front(self):
+        """
+        Return the first joint spline in the queue without removing.
+        """
+        return self.splines[0]

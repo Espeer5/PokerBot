@@ -16,9 +16,14 @@ import numpy as np
 import rclpy
 
 from std_srvs.srv       import Trigger
+from sensor_msgs.msg    import Image
 from detectors.utilities.base_node import Detector
 from detectors.utilities.chip_utilities import *
-from detectors.utilities.mapping_utilities import pixelToWorld
+from detectors.utilities.mapping_utilities import pixel_to_world_2
+
+
+MIN_BUTTON_AREA = 250
+
 
 
 #
@@ -39,11 +44,12 @@ class ButtonDetectorNode(Detector):
         super().__init__(name)
 
         load_chip_descriptors_from_json()
-        self.hsvlimits = np.array([[85, 95], [120, 190], [150, 215]])
+        self.hsvlimits = np.array([[70, 100], [0, 255], [152, 255]])
 
         # Provice the /btn_detector service for the brain node to request the 
         # locations of all chips showing
         self.btn_service = self.create_service(Trigger, '/btn_detector', self.btn_callback)
+        self.debugpub = self.create_publisher(Image, name+'/debug', 3)
 
         # Report.
         self.get_logger().info("ButtonDetector running...")
@@ -65,19 +71,33 @@ class ButtonDetectorNode(Detector):
 
         hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
         binary = cv2.inRange(hsv, self.hsvlimits[:,0], self.hsvlimits[:,1])
+        # cv2.imshow("binary", binary)
+        # cv2.waitKey(0)
 
         contours, _ = cv2.findContours(binary, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
         # assert len(contours) == 1
-        if len(contours) > 0:
-            (u, v), _ = cv2.minEnclosingCircle(contours[0])
+        for contour in contours:
+            (u, v), r = cv2.minEnclosingCircle(contour)
+            area = cv2.contourArea(contour) 
+            circle_area = np.pi * r**2
 
-            world_coords = pixelToWorld(frame, round(u), round(v), 0.0, 0.34, annotateImage=False)
+            if area >= MIN_BUTTON_AREA and area / circle_area >= 0.75:
+                # self.get_logger().info(f"{cv2.contourArea(contour)}")
 
-            if world_coords is not None:
-                x, y = world_coords
-                point = f"{x}, {y}, {0.0}"
-                response.message = point
+                world_coords = pixel_to_world_2(frame, round(u), round(v))
+
+                if world_coords is not None:
+                    debugging_frame = frame.copy()
+                    cv2.drawContours(debugging_frame, [contour], -1, (255, 0, 0), 3)
+                    self.debugpub.publish(self.bridge.cv2_to_imgmsg(debugging_frame, "rgb8"))
+                    
+                    # cv2.imshow("debug", frame)
+                    # cv2.waitKey(0)
+
+                    x, y = world_coords
+                    point = f"{x}, {y}, {-0.02}"
+                    response.message = point
     
         return response
 
@@ -90,7 +110,7 @@ def main(args=None):
     rclpy.init(args=args)
 
     # Instantiate the detector node.
-    node = ButtonDetectorNode('ChipDetectorNode')
+    node = ButtonDetectorNode('ButtonDetectorNode')
 
     # Spin the node until interrupted.
     rclpy.spin(node)

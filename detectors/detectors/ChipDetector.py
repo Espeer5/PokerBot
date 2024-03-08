@@ -21,7 +21,7 @@ from sensor_msgs.msg    import Image
 from std_srvs.srv       import Trigger
 from detectors.utilities.base_node import Detector
 from detectors.utilities.chip_utilities import *
-from detectors.utilities.mapping_utilities import pixelToWorld
+from detectors.utilities.mapping_utilities import pixel_to_world_2
 from detectors.message_types.ChipMessage import ChipMessage
 from detectors.message_types.Chip import Chip
 
@@ -95,13 +95,14 @@ class ChipDetectorNode(Detector):
 
         load_chip_descriptors_from_json()
         # self.pubbin = self.create_publisher(Image, name+'/binary',    3)
+        self.debugpub = self.create_publisher(Image, name+'/debug', 3)
 
         # 85-95, 120-190, 151-214
 
         # Provice the /ch_detector service for the brain node to request the 
         # locations of all chips showing
         self.ch_service = self.create_service(Trigger, '/ch_detector', self.ch_callback)
-        # self.hsvlimits = np.array([[20, 30], [90, 170], [60, 255]])
+        # self.hsvlimits = np.array([[0, 180], [0, 255], [0, 255]])
         # self.tracker = HSVTracker(self.hsvlimits)
 
         # Report.
@@ -157,9 +158,9 @@ class ChipDetectorNode(Detector):
                 chips = []
                 for contour in contours:
                     (u, v), _ = cv2.minEnclosingCircle(contour)
-                    world_coords = pixelToWorld(frame, round(u), round(v), 0.0, 0.34, annotateImage=False)
+                    world_coords = pixel_to_world_2(frame, round(u), round(v))
                     if world_coords is not None:
-                        chip = Chip(color, (float(world_coords[0]), float(world_coords[1]), float(0)))
+                        chip = Chip(color, (float(world_coords[0]), float(world_coords[1]), float(0.0)))
                         chips.append(chip)
                         if chip not in chip_to_contour_map:
                             chip_to_contour_map[chip] = []
@@ -175,12 +176,12 @@ class ChipDetectorNode(Detector):
                     chip_to_coords_map[chip][1].append(chip.coords[1])
                     
 
-        debugging_frame = frame = self.bridge.imgmsg_to_cv2(self.prev_images[-1], "bgr8")
+        debugging_frame = self.bridge.imgmsg_to_cv2(self.prev_images[-1], "bgr8")
 
         chips = []
         for chip, coords in chip_to_coords_map.items():
             if len(coords[0]) > 0.6 * len(self.prev_images):
-                average_chip = Chip(chip.color, (np.average(coords[0]), np.average(coords[1]), 0.0))
+                average_chip = Chip(chip.color, (np.average(coords[0]), np.average(coords[1]), -0.02))
                 chips.append(average_chip)
                 # self.get_logger().info(average_chip.to_string())
 
@@ -201,8 +202,10 @@ class ChipDetectorNode(Detector):
                     color = self.white
                 cv2.circle(debugging_frame, (round(np.average(x_values)), round(np.average(y_values))), 15, color, 1)
 
-        # cv2.imshow("debug", debugging_frame)
-        # cv2.waitKey(0)
+        if len(chips) > 0:
+            self.debugpub.publish(self.bridge.cv2_to_imgmsg(debugging_frame, "rgb8"))
+            # cv2.imshow("debug", debugging_frame)
+            # cv2.waitKey(0)
 
         response.message = ChipMessage(chips).to_string()
         return response

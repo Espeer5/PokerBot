@@ -31,7 +31,7 @@ GET_CHAIN = lambda node: KinematicChain(node, "world", "end", JOINTS)
 # TRAJECTORY CONSTANTS
 LAMBDA = 0.1 # Correction factor for position in simulated ikin
 SIM_T = 10 # simulated time for finding joint angles (greater -> more precise)
-FLIP_PHI = np.pi / 2 + 0.2 # The angle of the end affector to the table surface for card flip
+FLIP_PHI = np.pi / 2 + 0.3 # The angle of the end affector to the table surface for card flip
 
 # GRAVITY MODEL
 # The gravity model is a simple sinusoidal model of the form:
@@ -50,7 +50,7 @@ B_SH = 7.0 # Shoulder cos coefficient
 # gripper.
 ACTION_MAP = {
     "GB_CARD": lambda: send_pwm(200),
-    "GB_CHIP": lambda: send_pwm(220),
+    "GB_CHIP": lambda: send_pwm(255),
     "DROP": lambda: send_pwm(0),
     "FLIP": lambda: send_pwm(0),
     "NONE": lambda: None

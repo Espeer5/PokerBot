@@ -36,7 +36,9 @@ class Trajectory():
         self.goal_joints = None
         self.q = q0
         self.suction = True
-        self.pubbed = False
+        self.running_ID = 0
+        self.ID_pause = True
+
 
     def evaluate(self, t, _):
         """
@@ -47,17 +49,22 @@ class Trajectory():
             self.queue.t0 = t
             self.q = np.array(self.node.actpos).reshape(5, 1)
             return [nan, nan, nan, nan, nan], [nan, nan, nan, nan, nan]
+        if self.queue.empty():
+            if not self.ID_pause:
+                self.node.action_pub.publish(String(data=str(self.running_ID)))
+                self.ID_pause = True
+        elif self.queue.peek_front().act_ID != self.running_ID:
+            if not self.ID_pause:
+                self.node.get_logger().info("Sending msg")
+                self.node.action_pub.publish(String(data=str(self.running_ID)))
+            self.running_ID = self.queue.peek_front().act_ID
         q, qdot = self.queue.evaluate(t)
         if q is not None:
+            self.ID_pause = False
             self.q = q
             return q.flatten().tolist(), qdot.flatten().tolist()
         # If no queued trajectory spline, simply remain in place
         else:
-            # Notify the detector to look for a new card
-            # if not self.pubbed:
-            #     self.node.get_logger().info("sending detect")
-            #     self.node.detect_pub.publish(String(data="detect"))
-            #     self.pubbed = True
             return self.q.flatten().tolist(), [0.0, 0.0, 0.0, 0.0, 0.0]
     
 
@@ -79,6 +86,15 @@ class ControlNode(CONTROL_NODE):
         # Create a subscriber for goal messages, but do not begin listeining yet
         self.goal_sub = self.create_subscription(JointState, '/goal', self.cb_goal,
                                                  10)
+
+        # Create a publisher to notify the brain node when an action sequence
+        # has been completed
+        self.action_pub = self.create_publisher(String, '/act_ID', 10)
+
+        # Wait for the brain to subscribe to the publisher
+        while (not self.action_pub.get_subscription_count()):
+            pass
+        self.get_logger().info("Brain subscribed to action ID pubber")
     
     def cb_goal(self, msg):
         """
@@ -91,17 +107,16 @@ class ControlNode(CONTROL_NODE):
         joint_vel = np.array(msg.velocity).reshape(5, 1)
         # Slightly hacky way to do this, but oh well
         T = msg.effort[0]
-        self.traj.pubbed = False
         
         if self.traj.queue.empty():
             self.traj.queue.enqueue(np.array(self.actpos).reshape(5, 1),
-                                    joint_pos, np.zeros((5, 1)), joint_vel, T,
-                                    endAction=msg.name[0])
+                                    joint_pos, np.zeros((5, 1)), joint_vel,
+                                    int(msg.name[1]), T, endAction=msg.name[0])
             self.traj.queue.t0 = self.t
         else:
             prev_goal = self.traj.queue.peek_back()
             self.traj.queue.enqueue(prev_goal.qf, joint_pos, prev_goal.qdotf,
-                                    joint_vel, T, endAction=msg.name[0])
+                                    joint_vel, msg.name[1], T, endAction=msg.name[0])
 
 
 def main(args=None):
