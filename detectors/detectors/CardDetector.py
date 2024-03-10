@@ -32,27 +32,42 @@ class CardDetectorNode(Detector):
         # Load descriptors
         load_card_descriptors_map_from_json()
         
-        # Provide the /bc_detector service for the brain node to request the 
-        # locations of all backs of cards showing
-        self.c_service = self.create_service(Trigger, '/foc_detector', self.foc_callback)
+        # Provide the /foc_detector service for the brain node to request the 
+        # locations of all front of cards
+        self.usb_cam_service = self.create_service(Trigger, '/foc_detector', self.foc_callback)
+        self.box_cam_service = self.create_service(Trigger, '/bot_foc_detector', self.bot_foc_callback)
 
         # Report.
         self.get_logger().info("CardDetector running...")
+
+    def bot_foc_callback(self, _, response):
+        if self.bot_prev_images is None:
+            response.message = "No image available"
+            response.success = False
+            return response
+        response.success = True
+        # Ensure the previous image is able to be processed
+        image = self.bot_prev_images[-1]
+        response.message = self.get_card_message(image)
+        return response
 
     def foc_callback(self, _, response):
         """
         Callback for the /bc_detector service. This service is called by the
         brain node to request the locations of all backs of cards showing.
         """
-        if self.prev_img is None:
+        if self.prev_images is None:
             response.message = "No image available"
             response.success = False
             return response
         response.success = True
         # Ensure the previous image is able to be processed
-        image = self.prev_img
-        assert image.encoding == "rgb8"
+        image = self.prev_images[-1]
+        response.message = self.get_card_message(image)
+        return response
 
+    def get_card_message(self, image):
+        assert image.encoding == "rgb8"
         # Convert into OpenCV image, using RGB 8-bit (pass-through).
         frame = self.bridge.imgmsg_to_cv2(image, "passthrough")
         processed_image = preprocess_image(frame)
@@ -84,8 +99,7 @@ class CardDetectorNode(Detector):
             response_str = msg_object.to_string()
         else:
             response_str = "No cards found"
-        response.message = response_str
-        return response
+        return response_str
 
     # Shutdown
     def shutdown(self):

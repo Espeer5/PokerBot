@@ -49,6 +49,9 @@ class BrainNode(Node):
         # Create a service for interacting with the FOC detector node
         self.foc_cli = self.create_client(Trigger, '/foc_detector')
 
+        # Create a service for interacting with the FOC detector node
+        self.bot_foc_cli = self.create_client(Trigger, '/bot_foc_detector')
+
         # Create a service for interacting with the BTN detector node
         self.btn_cli = self.create_client(Trigger, '/btn_detector')
 
@@ -169,7 +172,7 @@ class BrainNode(Node):
 
     def get_btn(self):
         """
-        Get the list of all the chips and their locations in the workspace.
+        Get the button location in the workspace.
         """
         req = Trigger.Request()
         future = self.btn_cli.call_async(req)
@@ -177,6 +180,18 @@ class BrainNode(Node):
         msg = future.result().message
         if msg is not None and len(msg) > 0:
             return [float(coord) for coord in msg.split(", ")]
+        return None
+    
+    def get_bot_foc(self):
+        """
+        Get the robot's cards from the secondary camera.
+        """
+        req = Trigger.Request()
+        future = self.bot_foc_cli.call_async(req)
+        rclpy.spin_until_future_complete(self, future)
+        msg = future.result().message
+        if msg not in ["No cards found", "No image available"]:
+            return CardMessage.from_string(msg)
         return None
 
 
@@ -203,14 +218,14 @@ def main(args=None):
     #     node.get_logger().info(f"{node.get_foc()}")
     game = Game(node)
     game.run()
-    while True:
-        node.get_logger().info("RAN")
-        chip_message = node.get_ch()
-        if chip_message is not None:
-            for chip in chip_message.chips:
-                node.act_at(np.array(chip.coords).reshape(3, 1), 0, "GB_CHIP")
-                node.act_at(np.array([0.0, 0.5, 0.0]).reshape(3, 1), 0, "DROP")
-                sleep(10)
+    # while True:
+    #     node.get_logger().info("RAN")
+    #     chip_message = node.get_ch()
+    #     if chip_message is not None:
+    #         for chip in chip_message.chips:
+    #             node.act_at(np.array(chip.coords).reshape(3, 1), 0, "GB_CHIP")
+    #             node.act_at(np.array([0.0, 0.5, 0.0]).reshape(3, 1), 0, "DROP")
+    #             sleep(10)
             # cv2.waitKey(0)
             # node.get_logger().info("Got your input")
             

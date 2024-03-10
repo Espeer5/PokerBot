@@ -29,10 +29,14 @@ class Detector(Node):
         
         # Create a field which stores the previous image for processing on demand
         self.prev_images = deque([], maxlen=5)
+        self.bot_prev_images = deque([], maxlen=5)
 
         # Subscribe to the incoming image from the usb cam
-        self.sub = self.create_subscription(
-                    Image, '/image_raw', self.process, 1)
+        self.usb_cam_sub = self.create_subscription(
+                    Image, '/usb_cam/image_raw', self.process_usb_cam, 1)
+        
+        self.box_cam_sub = self.create_subscription(
+                    Image, '/box_cam/image_raw', self.process_box_cam, 1)
         
     def shutdown(self):
         """
@@ -40,7 +44,7 @@ class Detector(Node):
         """
         self.destroy_node()
 
-    def process(self, msg):
+    def process_usb_cam(self, msg):
         """
         Save each image to be processed as the brain node requests.
         """
@@ -49,4 +53,14 @@ class Detector(Node):
         
         self.prev_images.append(msg)
         assert len(self.prev_images) <= 5
+
+    def process_box_cam(self, msg):
+        """
+        Save each image to be processed as the brain node requests.
+        """
+        # Confirm the encoding and save for later processing
+        assert(msg.encoding == "rgb8")
+        
+        self.bot_prev_images.append(msg)
+        assert len(self.bot_prev_images) <= 5
         
