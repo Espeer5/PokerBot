@@ -115,7 +115,6 @@ class BrainNode(Node):
         self.send_goal(q_raised,
                        [0.0, -0.1, 0.0, 0.12, 0.0], type_str, seq_ID)
         swivel_velo = 0.0 if type_str in ['DROP', 'GB_CHIP'] else -0.2
-        self.get_logger().info(f"{type_str}, {swivel_velo}")
         d_time = 1.0 if type_str == 'DROP' else 2.0
         self.send_goal(q_goal,
                        [0.0, 0.0, 0.0, swivel_velo, 0.0], 'NONE', seq_ID, d_time)
@@ -127,7 +126,6 @@ class BrainNode(Node):
         else:
             phi_velo = 0.0 if type_str in ['DROP', 'GB_CHIP'] else 0.1
             swivel_velo = 0.0 if type_str in ['DROP', 'GB_CHIP'] else -0.12
-            self.get_logger().info(f"{type_str}, {swivel_velo}")
             self.send_goal(q_raised, [0.0, phi_velo, 0.0, swivel_velo, 0.0], 'NONE', seq_ID, 1.5)
         return seq_ID
 

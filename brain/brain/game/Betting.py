@@ -4,8 +4,8 @@ import random
 
 
 class Betting():
-    LEFT_POT_LOCATION = [(-0.25, 0.20), (0.25, 0.50)]
-    RIGHT_POT_LOCATION = [(None, None), (None, None)]
+    LEFT_POT_LOCATION = [(-0.40, 0.34), (-0.08, 0.58)]
+    RIGHT_POT_LOCATION = [(0.08, 0.34), (0.32, 0.58)]
     SMALL_BLIND = 1
     BIG_BLIND = 2
 
@@ -19,8 +19,9 @@ class Betting():
     
     def in_pot(self, chip_location):
         x, y, _ = chip_location
-        (x0, y0), (x1, y1) = self.POT_LOCATION
-        return x0 <= x <= x1 and y0 <= y <= y1
+        (x0l, y0l), (x1l, y1l) = self.LEFT_POT_LOCATION
+        (x0r, y0r), (x1r, y1r) = self.RIGHT_POT_LOCATION
+        return (x0l <= x <= x1l and y0l <= y <= y1l) or (x0r <= x <= x1r and y0r <= y <= y1r)
     
     def get_chip_value(self, chip):
         if chip.color == "blue":
@@ -103,28 +104,28 @@ class Betting():
         chips = self.node.get_ch().chips
 
         while True:
-            curr_space = np.array([x, y]).reshape(2, 1)
+            curr_space = np.array([x, y])
 
             overlapping = False
             for chip in chips:
                 cx, cy, _ = chip.coords
-                chip_coords = np.array([cx, cy]).reshape(2, 1)
+                chip_coords = np.array([cx, cy])
 
                 if np.linalg.norm(curr_space - chip_coords) < 0.02:
                     overlapping = True
                     break
 
             if overlapping:
-                curr_space = np.array([x + (random.random() - 1) * 0.08, y + (random.random() - 1) * 0.08]).reshape(3, 1)
+                curr_space = np.array([x + (random.random() - 1) * 0.08, y + (random.random() - 1) * 0.08])
             else:
-                return curr_space
+                return np.array([curr_space[0], curr_space[1], -0.02])
             
     def tidy_pot(self):
         chips = self.node.get_ch().chips
         messy_chips = []
         messy = True
         for chip in chips:
-            if not self.in_pot(chip):
+            if not self.in_pot(chip.coords):
                 for player in self.players:
                     if self.in_players_chip_box(player, chip.coords):
                         messy = False
@@ -140,7 +141,7 @@ class Betting():
                 tidy_location = self.find_space_in_pot(self.RIGHT_POT_LOCATION)
             
             self.node.act_at(np.array([x, y, z]).reshape(3, 1), 0, "GB_CHIP")
-            wait_ID = self.node.act_at(tidy_location, 0, "DROP")
+            wait_ID = self.node.act_at(tidy_location.reshape(3, 1), 0, "DROP")
 
             while self.node.prev_complete != wait_ID:
                 rclpy.spin_once(self.node)

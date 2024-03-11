@@ -48,7 +48,7 @@ class Game():
             dealer = Dealer(self.node, self.players)
 
             # Deal player hands
-            dealer.run()
+            # dealer.run()
 
             ccards_dealer = CommunityCardsDealer(self.node)
 
