@@ -26,8 +26,5 @@ Leo's To-Do List:
    - Re-take reference images?
    - Add sampling?
  - Update chip box locations (once 3d prints are done)
- - Write second FOC detector for robot's cards
  - Figure out a way to indicate that the robot has folded
  - Work with Eddie to integrate robot decision making with betting code
- - Get robot to move chips that are outside of the pot (and the players' chip boxees) into the pot
- - Filter button output (wait for it to stop moving)

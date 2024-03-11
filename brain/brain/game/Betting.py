@@ -1,9 +1,11 @@
 import numpy as np
 import rclpy
+import random
 
 
 class Betting():
-    POT_LOCATION = [(-0.25, 0.20), (0.25, 0.50)]
+    LEFT_POT_LOCATION = [(-0.25, 0.20), (0.25, 0.50)]
+    RIGHT_POT_LOCATION = [(None, None), (None, None)]
     SMALL_BLIND = 1
     BIG_BLIND = 2
 
@@ -28,13 +30,18 @@ class Betting():
         else:
             return 0
 
-    def detect_chips_in_pot(self):
+    def detect_pot_size(self):
         chips = self.node.get_ch().chips
         return sum([self.get_chip_value(chip) for chip in chips if self.in_pot(chip.coords)])
         
     def in_players_card_box(self, player, card_location):
         x, y, _ = card_location
         (x0, y0), (x1, y1) = player.card_box
+        return x0 <= x <= x1 and y0 <= y  <= y1
+    
+    def in_players_chip_box(self, player, chip_location):
+        x, y, _ = chip_location
+        (x0, y0), (x1, y1) = player.chip_box
         return x0 <= x <= x1 and y0 <= y  <= y1
 
     def detect_fold(self, player):
@@ -88,6 +95,57 @@ class Betting():
                     return False
         return True
 
+    def find_space_in_pot(self, pot):
+        (x0, y0), (x1, y1) = pot
+        x = (x0 + x1) / 2
+        y = (y0 + y1) / 2
+
+        chips = self.node.get_ch().chips
+
+        while True:
+            curr_space = np.array([x, y]).reshape(2, 1)
+
+            overlapping = False
+            for chip in chips:
+                cx, cy, _ = chip.coords
+                chip_coords = np.array([cx, cy]).reshape(2, 1)
+
+                if np.linalg.norm(curr_space - chip_coords) < 0.02:
+                    overlapping = True
+                    break
+
+            if overlapping:
+                curr_space = np.array([x + (random.random() - 1) * 0.08, y + (random.random() - 1) * 0.08]).reshape(3, 1)
+            else:
+                return curr_space
+            
+    def tidy_pot(self):
+        chips = self.node.get_ch().chips
+        messy_chips = []
+        messy = True
+        for chip in chips:
+            if not self.in_pot(chip):
+                for player in self.players:
+                    if self.in_players_chip_box(player, chip.coords):
+                        messy = False
+                        break
+                if messy:
+                    messy_chips.append(chip)
+
+        for chip in messy_chips:
+            x, y, z = chip.coords
+            if x < 0:
+                tidy_location = self.find_space_in_pot(self.LEFT_POT_LOCATION)
+            else:
+                tidy_location = self.find_space_in_pot(self.RIGHT_POT_LOCATION)
+            
+            self.node.act_at(np.array([x, y, z]).reshape(3, 1), 0, "GB_CHIP")
+            wait_ID = self.node.act_at(tidy_location, 0, "DROP")
+
+            while self.node.prev_complete != wait_ID:
+                rclpy.spin_once(self.node)
+
+
     def run(self):
         num_bets = 0
         curr_button, curr_bettor = self.detect_curr_bettor()
@@ -105,7 +163,8 @@ class Betting():
             if curr_bettor != new_bettor:
                 self.node.get_logger().info(f"player {new_bettor.player_id} is betting...")
 
-                new_pot_size = self.detect_chips_in_pot()
+                self.tidy_pot()
+                new_pot_size = self.detect_pot_size()
                 new_bettor_is_next = new_bettor == self.players[(curr_index + 1) % len(self.players)]
                 new_bet = new_pot_size - curr_pot_size
 
