@@ -7,7 +7,7 @@ collaborate to plan and execute the robot's actions.
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
-from utils.constants import ACTUAL_RSP, NODE_HEBI, NODE_RVIZ, NODE_USBCAM
+from utils.constants import ACTUAL_RSP, NODE_HEBI, NODE_RVIZ, NODE_USBCAM, NODE_BOXCAM
 
 def generate_launch_description():
     """
@@ -71,6 +71,7 @@ def generate_launch_description():
         ChipDetectorNode,
         CardDetectorNode,
         ButtonDetectorNode,
+        NODE_BOXCAM,
         ACTUAL_RSP,
         # NODE_RVIZ,
         NODE_HEBI,

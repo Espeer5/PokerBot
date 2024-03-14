@@ -21,7 +21,7 @@ from detectors.message_types.ChipMessage import ChipMessage
 from detectors.message_types.BackOfCardMessage import BackOfCardMessage
 from detectors.message_types.CardPose import CardPose
 from detectors.message_types.CardMessage import CardMessage
-from utils.constants import GET_CHAIN, FLIP_PHI
+from utils.constants import GET_CHAIN, FLIP_PHI, Q_WAIT
 from brain.game.Game import Game
 import cv2
 
@@ -94,7 +94,7 @@ class BrainNode(Node):
         self.cmdmsg.effort = (T,) if T is not None else (-1.0,)
         self.cmdpub.publish(self.cmdmsg)
 
-    def act_at(self, goalpos, goal_th, type_str):
+    def act_at(self, goalpos, goal_th, type_str, wait=False):
         """
         Send a sequence of commands to the control node to grab/drop a card at the
         goal position with the given goal orientation of the end affector.
@@ -102,31 +102,35 @@ class BrainNode(Node):
         self.get_logger().info(f"act_at({goalpos}, {goal_th}, {type_str})")
         self.PREV_ID += 1
         seq_ID = self.PREV_ID
+        phi_raised = FLIP_PHI if type_str == 'FLIP' else 0.0
         q_raised = find_joints(self.chain,
-                               goalpos + np.array([0.0, 0.0, 0.04]).reshape(3, 1),
-                               goal_th)
+                               goalpos + np.array([0.0, 0.0, 0.05]).reshape(3, 1),
+                               goal_th, phi_raised)
         if type_str == 'FLIP':
             q_goal = find_joints(self.chain, goalpos, goal_th, FLIP_PHI)
         elif type_str == "GB_CHIP":
-            q_goal = find_joints(self.chain, goalpos, goal_th, -0.075)
+            q_goal = find_joints(self.chain, goalpos, goal_th, 0.0)
         else:
-            q_goal = find_joints(self.chain, goalpos, goal_th)
+            q_goal = find_joints(self.chain, goalpos, goal_th, -0.1)
 
         self.send_goal(q_raised,
                        [0.0, -0.1, 0.0, 0.12, 0.0], type_str, seq_ID)
-        swivel_velo = 0.0 if type_str in ['DROP', 'GB_CHIP'] else -0.2
+        swivel_velo = 0.0 if type_str in ['DROP', 'GB_CHIP'] else -0.0
+        d_velo = -0.002 if type_str == 'GB_CHIP' else 0.0
         d_time = 1.0 if type_str == 'DROP' else 2.0
         self.send_goal(q_goal,
-                       [0.0, 0.0, 0.0, swivel_velo, 0.0], 'NONE', seq_ID, d_time)
+                       [0.0, d_velo, 0.0, swivel_velo, 0.0], 'NONE', seq_ID, d_time)
         if type_str == 'FLIP':
             theta = np.arctan2(goalpos[1], goalpos[0])
-            d_pos = np.array([0.2 * cos(theta), 0.2 * sin(theta), -0.01]).reshape(3, 1)
+            d_pos = np.array([0.2 * cos(theta), 0.2 * sin(theta), -0.05]).reshape(3, 1)
             q_retract = find_joints(self.chain, goalpos - d_pos, goal_th, FLIP_PHI + 0.35)
             self.send_goal(q_retract, [0.0, 0.0, 0.0, 0.0, 0.0], 'NONE', seq_ID, 2.0)
         else:
             phi_velo = 0.0 if type_str in ['DROP', 'GB_CHIP'] else 0.1
             swivel_velo = 0.0 if type_str in ['DROP', 'GB_CHIP'] else -0.12
             self.send_goal(q_raised, [0.0, phi_velo, 0.0, swivel_velo, 0.0], 'NONE', seq_ID, 1.5)
+        if wait:
+            self.send_goal(Q_WAIT, [0.0, 0.0, 0.0, 0.0, 0.0], 'NONE', seq_ID)
         return seq_ID
 
     def get_bc(self):
@@ -165,6 +169,8 @@ class BrainNode(Node):
         msg = future.result().message
         if msg not in ["No cards found", "No image available"]:
             return CardMessage.from_string(msg)
+        elif msg == "No cards found":
+            return msg
         return None
     
 
@@ -206,29 +212,21 @@ def main(args=None):
     # Wait for the control node to be ready
     sleep(4)
 
-    # Send a goal to the control node.
-    # for _ in range(8):
-    #     node.act_at(node.goal1, 0.0, 'GB_CARD')
-    #     node.act_at(node.goal2, 0.0, 'DROP')
-    # while True:
-    #     node.get_logger().info("RAN")
-    #     sleep(1)
-    #     node.get_logger().info(f"{node.get_foc()}")
     game = Game(node)
     game.run()
     # while True:
     #     node.get_logger().info("RAN")
-    #     chip_message = node.get_ch()
-    #     if chip_message is not None:
-    #         for chip in chip_message.chips:
-    #             node.act_at(np.array(chip.coords).reshape(3, 1), 0, "GB_CHIP")
-    #             node.act_at(np.array([0.0, 0.5, 0.0]).reshape(3, 1), 0, "DROP")
-    #             sleep(10)
-            # cv2.waitKey(0)
-            # node.get_logger().info("Got your input")
-            
-        # sleep(1)
-        # node.get_logger().info(f"{node.get_ch()}")
+    #     button = node.get_btn()
+    #     if button is not None:
+    #         node.act_at(np.array(button).reshape(3, 1), 0, "GB_CHIP")
+    #         wait_ID = node.act_at(np.array([0.0, 0.5, 0.0]).reshape(3, 1), 0, "DROP")
+    #         while node.prev_complete != wait_ID:
+    #             rclpy.spin_once(node)
+    # while True:
+    #     node.get_bot_foc()
+        # node.get_ch()
+                
+
     # Spin the node so the callback function is called.
     rclpy.spin(node)
 

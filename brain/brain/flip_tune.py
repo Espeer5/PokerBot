@@ -9,6 +9,7 @@ from time import sleep
 
 from utils.find_joints import find_joints
 from utils.constants import GET_CHAIN
+from brain.game.constants import DECK_LOCATION, FLIP_LOC
 from brain.brain import BrainNode
 
 
@@ -21,15 +22,15 @@ class FlipBrain(BrainNode):
         super().__init__(name)
 
         self.chain = GET_CHAIN(self)
-        self.goal1 = np.array([-0.3, 0.3, -0.01]).reshape(3, 1)
-        self.goal2 = np.array([0.02, 0.4, 0.05]).reshape(3, 1)
+        self.goal1 = DECK_LOCATION
+        self.goal2 = FLIP_LOC
 
     def flip(self):
         """
         Run the card flipping demo.
         """
         # Move to the first goal position.
-        self.act_at(self.goal1, 0.0, "GB_CARD")
+        self.act_at(self.goal1 + np.array([0.02, 0.0, 0.0]).reshape(3, 1), np.pi/2, "GB_CARD")
         # Move to the second goal position.
         self.act_at(self.goal2, 0.0, "FLIP")
 

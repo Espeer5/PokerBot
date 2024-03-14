@@ -57,12 +57,12 @@ def generate_launch_description():
         executable = 'obey',
         output     = 'screen')
     
-    # CardDetectorNode = Node(
-    #     name       = 'CardDetector', 
-    #     package    = 'detectors',
-    #     executable = 'CardDetector',
-    #     output     = 'screen',
-    #     remappings = [('/image_raw', '/usb_cam/image_raw')])
+    CardDetectorNode = Node(
+        name       = 'CardDetector', 
+        package    = 'detectors',
+        executable = 'CardDetector',
+        output     = 'screen',
+        remappings = [('/image_raw', '/usb_cam/image_raw')])
 
     # ChipDetectorNode = Node(
     #     name       = 'ChipDetector', 
@@ -80,8 +80,8 @@ def generate_launch_description():
         # Start the nodes.
         NODE_USBCAM,
         # BackCardDetectorNode,
-        # CardDetectorNode,
-        ChipDetectorNode,
+        CardDetectorNode,
+        # ChipDetectorNode,
         brain,
         control,
         NODE_HEBI,

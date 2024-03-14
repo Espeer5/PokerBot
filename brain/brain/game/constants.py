@@ -8,10 +8,10 @@ import numpy as np
 from brain.game.Player import Player
 
 # The locations of players in the game (x1, y1), (x2, y2)
-PLAYERS = [Player(1, [(-0.44, 0.38), (-0.35, 0.53)], [(-0.555, 0.38), (-0.44, 0.53)]),
-           Player(2, [(-0.20, 0.53), (-0.05, 0.63)], [(-0.20, 0.63), (-0.05, 0.74)]),
-           Player(3, [(0.18, 0.53), (0.53, 0.63)], [(0.18, 0.63), (0.35, 0.74)]),
-           Player("robot", [(0.17, 0.21), (0.27, 0.36)], [(0.46, 0.3), (0.58, 0.48)])]
+PLAYERS = [Player(1, [(-0.56, 0.26), (-0.38, 0.55)], [(-0.535, 0.38), (-0.40, 0.53)]),
+           Player(2, [(-0.31, 0.605), (-0.17, 0.755)], [(-0.2025, 0.625), (-0.055, 0.735)]),
+           Player(3, [(0.065, 0.61), (0.375, 0.76)], [(0.1875, 0.58), (0.3575, 0.74)]),
+           Player("robot", [(0.30, 0.22), (0.44, 0.52)], [(0.4725, 0.3), (0.5925, 0.48)])]
 
 
 # The constant location of the deck
@@ -55,7 +55,7 @@ def find_card(node):
         suit = None
         while loc is None:
             cards = node.get_foc()
-            if cards is not None:
+            if cards is not None and type(cards) is not str:
                 cards = cards.cards
                 for card in cards:
                     pot_loc = card.pose.coords
@@ -96,10 +96,10 @@ def get_card_locations_from_card_box(card_box, raised=False):
         card2x = card1x
         card2y = y1 - vert_gap_size - (CARD_SIZE[0] / 2)
 
-        z = 0.22 if raised else -0.01
+        z = 0.21 if raised else -0.01
 
-        coords1 = np.array([card1x, card1y, z]).reshape(3, 1)
-        coords2 = np.array([card2x, card2y, z]).reshape(3, 1)
+        coords1 = card1x, card1y, z
+        coords2 = card2x, card2y, z
         return coords1, coords2, theta
 
     else:
@@ -117,28 +117,8 @@ def get_card_locations_from_card_box(card_box, raised=False):
         card2x = x1 - horizontal_gap_size - (CARD_SIZE[0] / 2)
         card2y = card1y
 
-        z = 0.225 if raised else 0.0
+        z = 0.21 if raised else 0.0
 
-        coords1 = np.array([card1x, card1y, z]).reshape(3, 1)
-        coords2 = np.array([card2x, card2y, z]).reshape(3, 1)
+        coords1 = card1x, card1y, z
+        coords2 = card2x, card2y, z
         return coords1, coords2, theta
-
-
-def show(node):
-    """
-    A simple function to cause the robot to show its own cards
-    """
-    robot_cb = PLAYERS[3].card_box
-    own_cards = 0
-    while own_cards < 2:
-        boc = node.get_bc()
-        for card in boc.poses:
-            loc = np.array(card.coords).reshape(3, 1) + np.array([-0.1, 0.05, 0.225]).reshape(3, 1)
-            node.get_logger().info(f"Card location: {loc}")
-            # Check if the card is in the robot's own player box
-            if (robot_cb[0][0] - 0.05 <= loc[0] <= robot_cb[1][0] + 0.05 and
-                robot_cb[0][1] - 0.05 <= loc[1] <= robot_cb[1][1] + 0.05):
-                own_cards += 1
-                node.act_at(loc, card.theta, "GB_CARD")
-                node.act_at(FLIP_LOC, 0.0, "FLIP")
-                sleep(3)

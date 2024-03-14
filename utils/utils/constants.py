@@ -25,6 +25,9 @@ from utils.pump_util import send_pwm
 JOINTS = ["base", "shoulder", "elbow", "tip", "tipturn"]
 MOTORS = ["8.3", "8.5", "8.4", "8.1", "8.2"]
 
+# Waiting joint positions
+Q_WAIT = np.array([0.0, 1.15, 2.0, 1.20, 0.0])
+
 # Get a kinematic chain corresponding to these joints:
 GET_CHAIN = lambda node: KinematicChain(node, "world", "end", JOINTS)
 
@@ -40,8 +43,8 @@ FLIP_PHI = np.pi / 2 + 0.3 # The angle of the end affector to the table surface 
 # The arm needs resistive torques to counteract gravity on only the shoulder and
 # elbow joints. The tip and tipturn joints are not affected greatly by gravity.
 
-A_EL = 0.15 # Elbow sin coefficient
-B_EL = -2.9 # Elbow cos coefficient
+A_EL = 0.23 # Elbow sin coefficient
+B_EL = -3.2 # Elbow cos coefficient
 A_SH = 0.6 # Shoulder sin coefficient
 B_SH = 7.0 # Shoulder cos coefficient
 
@@ -49,7 +52,7 @@ B_SH = 7.0 # Shoulder cos coefficient
 # Maps strings of actions to functions which execute those actions on the vacuum 
 # gripper.
 ACTION_MAP = {
-    "GB_CARD": lambda: send_pwm(200),
+    "GB_CARD": lambda: send_pwm(255),
     "GB_CHIP": lambda: send_pwm(255),
     "DROP": lambda: send_pwm(0),
     "FLIP": lambda: send_pwm(0),
@@ -92,6 +95,9 @@ class CONTROL_NODE(Node):
         """
         # Intialize the node, naming it as specified
         super().__init__(name)
+
+        # Internal flag for 'floating' a particular joint
+        self.nerfj = None
 
         # Create a message and publisher to send joint commands to the robot.
         self.cmdmsg = JointState()
@@ -163,8 +169,15 @@ class CONTROL_NODE(Node):
         # Update the current time.
         self.t += self.dt
         # Compute the desired joint positions and velocities for this time.
-        q, qdot = (self.traj.evaluate(self.t, self.dt) if hasattr(self, 'traj') and self.t > 2
-                   else ((nan, nan, nan, nan, nan), (nan, nan, nan, nan, nan)))
+        q, qdot = (self.traj.evaluate(self.t, self.dt) if hasattr(self, 'traj') else
+                    (self.actpos, [0.0, 0.0, 0.0, 0.0, 0.0]))
+        
+        # If we directly command the robot to nerf a joint, then the position
+        # and velocity for that joint need to be set to nan
+        if self.nerfj is not None:
+            q[self.nerfj] = nan
+            qdot[self.nerfj] = nan
+
         # Build up the joint command message to send to the motors and publish.
         self.cmdmsg.header.stamp = self.get_clock().now().to_msg()
         self.cmdmsg.name         = JOINTS
@@ -209,6 +222,7 @@ NODE_HEBI = launch_ros.actions.Node(
     parameters = [{'family':   'robotlab'},
                   {'motors':   MOTORS},
                   {'joints':   JOINTS}],
+                #   {'testmode': 'track'}],
     on_exit    = Shutdown())
 
 # Camera setup node
@@ -252,7 +266,7 @@ NODE_BOXCAM = launch_ros.actions.Node(
                     {'contrast':            -1},
                     {'saturation':          -1},
                     {'sharpness':           -1},
-                    {'gain':                20},
+                    {'gain':                1},
                     {'auto_white_balance':  True},
                     {'white_balance':       -1},
                     {'autoexposure':        False},

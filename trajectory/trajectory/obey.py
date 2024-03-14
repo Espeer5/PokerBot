@@ -34,10 +34,11 @@ class Trajectory():
         self.q0 = np.array(q0).reshape(5, 1)
         self.queue = JointSplineQueue()
         self.goal_joints = None
-        self.q = q0
+        self.q = self.q0
         self.suction = True
         self.running_ID = 0
         self.ID_pause = True
+        self.nerfing = False
 
 
     def evaluate(self, t, _):
@@ -47,8 +48,7 @@ class Trajectory():
         """
         if t < 4.0:
             self.queue.t0 = t
-            self.q = np.array(self.node.actpos).reshape(5, 1)
-            return [nan, nan, nan, nan, nan], [nan, nan, nan, nan, nan]
+            return self.q.flatten().tolist(), [0.0, 0.0, 0.0, 0.0, 0.0]
         if self.queue.empty():
             if not self.ID_pause:
                 self.node.action_pub.publish(String(data=str(self.running_ID)))
@@ -59,6 +59,13 @@ class Trajectory():
                 self.node.action_pub.publish(String(data=str(self.running_ID)))
             self.running_ID = self.queue.peek_front().act_ID
         q, qdot = self.queue.evaluate(t)
+        if self.nerfing and self.queue.peek_front().endAction == 'NONE':
+            self.node.nerfj = 3
+        if not self.queue.empty() and self.queue.peek_front().endAction == 'GB_CHIP':
+            self.nerfing = True
+        if not self.queue.empty() and self.queue.peek_front().endAction == 'DROP' and self.nerfing:
+            self.node.nerfj = None
+            self.nerfing = False
         if q is not None:
             self.ID_pause = False
             self.q = q

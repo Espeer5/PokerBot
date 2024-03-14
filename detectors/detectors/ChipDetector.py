@@ -94,7 +94,7 @@ class ChipDetectorNode(Detector):
         super().__init__(name)
 
         load_chip_descriptors_from_json()
-        # self.pubbin = self.create_publisher(Image, name+'/binary',    3)
+        self.pubbin = self.create_publisher(Image, name+'/binary',    3)
         self.debugpub = self.create_publisher(Image, name+'/debug', 3)
 
         # 85-95, 120-190, 151-214
@@ -181,7 +181,7 @@ class ChipDetectorNode(Detector):
         chips = []
         for chip, coords in chip_to_coords_map.items():
             if len(coords[0]) > 0.6 * len(self.prev_images):
-                average_chip = Chip(chip.color, (np.average(coords[0]), np.average(coords[1]), -0.02))
+                average_chip = Chip(chip.color, (np.average(coords[0]), np.average(coords[1]), -0.03))
                 chips.append(average_chip)
                 # self.get_logger().info(average_chip.to_string())
 
@@ -203,7 +203,7 @@ class ChipDetectorNode(Detector):
                 cv2.circle(debugging_frame, (round(np.average(x_values)), round(np.average(y_values))), 15, color, 1)
 
         if len(chips) > 0:
-            self.debugpub.publish(self.bridge.cv2_to_imgmsg(debugging_frame, "rgb8"))
+            self.debugpub.publish(self.bridge.cv2_to_imgmsg(debugging_frame, "bgr8"))
             # cv2.imshow("debug", debugging_frame)
             # cv2.waitKey(0)
 

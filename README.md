@@ -17,14 +17,9 @@ Known tasks:
 
 
 Leo's To-Do List:
- - Improve chip detection
-   - Expand HSV range for non-black chips?
-   - Re-take reference images?
-   - Check size and feature matching bounds
  - Improve FOC detection
    - Increase lower bound (stop detecting BOC)
    - Re-take reference images?
    - Add sampling?
- - Update chip box locations (once 3d prints are done)
- - Figure out a way to indicate that the robot has folded
  - Work with Eddie to integrate robot decision making with betting code
+ - Move dealer button back to first bettor after betting

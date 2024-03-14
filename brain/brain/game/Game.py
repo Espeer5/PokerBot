@@ -1,10 +1,12 @@
+import rclpy
+
 from brain.game.Dealer import Dealer
 from brain.game.CommunityCardsDealer import CommunityCardsDealer
 from brain.game.Betting import Betting
 from brain.game.Showdown import Showdown
 from brain.game.Payout import Payout
 from brain.game.Player import Player
-from brain.game.constants import PLAYERS, show
+from brain.game.constants import PLAYERS
 
 
 class Game():
@@ -14,13 +16,13 @@ class Game():
 
     def __init__(self, node):
         self.node = node
-        self.node.get_logger().info("Game initialized")
-        #self.players = self.detect_active_players()
-        self.players = PLAYERS
+        self.players = self.detect_active_players()
+        # self.players = PLAYERS
         self.ccards = []
         # self.node.get_logger().info(f"Active players: {[p.chip_box for p in self.players]}")
         # self.dealer_idx = 0
         # self.curr_state = 
+        self.node.get_logger().info("Game initialized")
         
 
     def detect_active_players(self):
@@ -29,6 +31,7 @@ class Game():
         into the player's chip box that the chips belong to.
         """
         chip_loc_set = self.node.get_ch().chips
+        self.node.get_logger().info(f"chips={chip_loc_set}")
         player_set = []
         # Bucket every chip into a certain player's chip box based on location
         for chip in chip_loc_set:
@@ -48,29 +51,29 @@ class Game():
             dealer = Dealer(self.node, self.players)
 
             # Deal player hands
-            # dealer.run()
+            dealer.run()
 
             ccards_dealer = CommunityCardsDealer(self.node)
 
             pot_size = 0
-            first_round = True
+            round_number = 1
             while True: 
-                betting = Betting(self.node, self.players, pot_size, first_round)
+                betting = Betting(self.node, self.players, pot_size, round_number, self.ccards)
                 is_showdown, self.players, pot_size = betting.run()
-                first_round = False
+                round_number += 1
                     
                 if len(self.players) == 1:
-                    payout = Payout(self.players[0])
-                    payout.run()
+                    # payout = Payout(self.players[0])
+                    # payout.run()
                     break
 
                 if is_showdown:
-                    showdown = Showdown(self.node, self.players, self.ccards)
+                    showdown = Showdown(self.node, PLAYERS[:-1], self.ccards)
                     winning_player = showdown.run()
                     self.node.get_logger().info(f"Player {winning_player.player_id} has won the round!")
 
-                    payout = Payout(winning_player)
-                    payout.run()
+                    # payout = Payout(winning_player)
+                    # payout.run()
                     break
 
                 self.ccards += ccards_dealer.run()

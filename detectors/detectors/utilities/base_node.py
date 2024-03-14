@@ -29,7 +29,7 @@ class Detector(Node):
         
         # Create a field which stores the previous image for processing on demand
         self.prev_images = deque([], maxlen=5)
-        self.bot_prev_images = deque([], maxlen=5)
+        self.bot_prev_images = deque([], maxlen=1)
 
         # Subscribe to the incoming image from the usb cam
         self.usb_cam_sub = self.create_subscription(
@@ -60,7 +60,6 @@ class Detector(Node):
         """
         # Confirm the encoding and save for later processing
         assert(msg.encoding == "rgb8")
-        
         self.bot_prev_images.append(msg)
-        assert len(self.bot_prev_images) <= 5
+        assert len(self.bot_prev_images) <= 1
         

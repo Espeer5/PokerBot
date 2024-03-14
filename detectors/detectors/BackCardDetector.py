@@ -46,6 +46,8 @@ class BackCardDetectorNode(Detector):
         # locations of all backs of cards showing
         self.bc_service = self.create_service(Trigger, '/bc_detector', self.bc_callback)
 
+        self.debugpub = self.create_publisher(Image, name+'/debug', 3)
+
         # Report.
         self.get_logger().info("BackCardDetector running...")
 
@@ -60,35 +62,44 @@ class BackCardDetectorNode(Detector):
             return response
         response.success = True
         # Ensure the previous image is able to be processed
-        image = self.prev_images[-1]
-        assert image.encoding == "rgb8"
+        all_card_poses = set()
+        all_contours = []
+        for image in self.prev_images:
+            assert image.encoding == "rgb8"
 
-        # Convert into OpenCV image, using RGB 8-bit (pass-through).
-        frame = self.bridge.imgmsg_to_cv2(image, "passthrough")
+            # Convert into OpenCV image, using RGB 8-bit (pass-through).
+            frame = self.bridge.imgmsg_to_cv2(image, "passthrough")
+            debug_frame = frame.copy()
 
-        processed_image = preprocess_image(frame)
-        card_contours = find_cards(processed_image)
-        card_poses = set()
-        for contour in card_contours:
-            card_image = extract_card_from_image(frame, contour)
-            if card_image is not None:
-                card_image = cv2.cvtColor(card_image, cv2.COLOR_BGR2GRAY)
+            processed_image = preprocess_image(frame)
+            card_contours = find_cards(processed_image)
+            all_contours += card_contours
+            card_poses = set()
+            for contour in card_contours:
+                card_image = extract_card_from_image(frame, contour)
+                if card_image is not None:
+                    card_image = cv2.cvtColor(card_image, cv2.COLOR_BGR2GRAY)
 
-                if is_back_of_card(card_image):
-                    (x, y), (w, h), alpha = cv2.minAreaRect(contour)
+                    is_back, _ = is_back_of_card(card_image)
+                    if is_back:
+                        (x, y), (w, h), alpha = cv2.minAreaRect(contour)
 
-                    if h/w < 1:
-                        alpha += 90
+                        if h/w < 1:
+                            alpha += 90
 
-                    alpha = np.radians(alpha)
+                        alpha = np.radians(alpha)
 
-                    world_loc = pixel_to_world_2(frame, round(x), round(y))
+                        world_loc = pixel_to_world_2(frame, round(x), round(y))
 
-                    if world_loc is not None:
-                        pose = CardPose((float(world_loc[0]), float(world_loc[1]), float(-0.01)), alpha)
-                        card_poses.add(pose)
-        if len(card_poses) > 0:
-            msg_object = BackOfCardMessage(card_poses)
+                        if world_loc is not None:
+                            pose = CardPose((float(world_loc[0]), float(world_loc[1]), float(-0.01)), alpha)
+                            card_poses.add(pose)
+            all_card_poses = all_card_poses.union(card_poses)
+
+        if len(all_card_poses) > 0:
+            cv2.drawContours(debug_frame, all_contours, -1, (255, 0, 0), 3)
+            self.debugpub.publish(self.bridge.cv2_to_imgmsg(debug_frame, "rgb8"))
+            msg_object = BackOfCardMessage(all_card_poses)
             response_str = msg_object.to_string()
         else:
             response_str = "No cards found"

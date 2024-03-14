@@ -9,13 +9,18 @@ BKG_THRESH = 60
 CARD_THRESH = 30
 
 # Card Area Bounds
-CARD_MAX_AREA = 20000
-CARD_MIN_AREA = 1000
+CARD_MAX_AREA = 4000
+CARD_MIN_AREA = 2000
+
+# Box Card Area Bounds
+BOX_CARD_MAX_AREA = 130000
+BOX_CARD_MIN_AREA = 90000
 
 # Style
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 BACK_OF_CARD_DESCRIPTORS = np.array([])
 CARD_DESCRIPTORS_MAP = np.array([])
+BOX_CARD_DESCRIPTORS_MAP = np.array([])
 
 
 # class QueryCard:
@@ -59,27 +64,64 @@ def preprocess_image(image):
     thresh_level = bkg_level + BKG_THRESH
 
     retval, thresh = cv2.threshold(blur,thresh_level,255,cv2.THRESH_BINARY)
-    
+    # cv2.imshow("thresh", thresh)
+    # cv2.waitKey(0)
+
+    return thresh
+
+
+def preprocess_box_image(image):
+    """Returns a grayed, blurred, and adaptively thresholded camera image."""
+
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    hsv_range = np.array([[90, 180], [0, 255], [0, 255]])
+
+    thresh = cv2.inRange(image, hsv_range[:,0], hsv_range[:,1])
+
     return thresh
 
 
 def find_cards(thresh_image):
     """Finds all card-sized contours in a thresholded camera image."""
-    contours, hierarchies = cv2.findContours(thresh_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(thresh_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     if len(contours) == 0:
         return np.array([])
 
-    def is_contour_a_card(contour, hierarchy):
+    def is_contour_a_card(contour):
         size = cv2.contourArea(contour)
         peri = cv2.arcLength(contour, True)
         num_corners = len(cv2.approxPolyDP(contour, 0.01*peri, True))
 
-        PARENT = 3
-        NO_PARENT = -1
-        return size < CARD_MAX_AREA and size > CARD_MIN_AREA and hierarchy[PARENT] == NO_PARENT and num_corners == 4
+        rect = cv2.minAreaRect(contour)
+        _, (w, h), _ = rect
+        long_side = max(w, h)
+        short_side = min(w, h)
 
-    card_contours = [contour for contour, hierarchy in zip(contours, hierarchies[0]) if is_contour_a_card(contour, hierarchy)]
-    # card_contours.sort(key=cv2.contourArea, reverse=True)
+        return size < CARD_MAX_AREA and size > CARD_MIN_AREA and num_corners == 4 and long_side / short_side > 1.25
+
+    card_contours = [contour for contour in contours if is_contour_a_card(contour)]
+
+    return card_contours
+
+
+def find_box_cards(thresh_image):
+    """Finds all card-sized contours in a thresholded camera image."""
+    contours, _ = cv2.findContours(thresh_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    if len(contours) == 0:
+        return np.array([])
+
+    def is_contour_a_card(contour):
+        size = cv2.contourArea(contour)
+        # rect = cv2.minAreaRect(contour)
+        # _, (w, h), _ = rect
+        # long_side = max(w, h)
+        # short_side = min(w, h)
+
+        # return size < BOX_CARD_MAX_AREA and size > BOX_CARD_MIN_AREA and long_side / short_side > 1.25
+        return size < BOX_CARD_MAX_AREA and size > BOX_CARD_MIN_AREA
+
+    card_contours = [contour for contour in contours if is_contour_a_card(contour)]
 
     return card_contours
 
@@ -114,43 +156,36 @@ def extract_card_from_image(image, contour):
         return image
     return None
 
-# def preprocess_card(contour, image):
-#     """Uses contour to find information about the query card."""
 
-#     qCard = QueryCard()
+def identify_card(card_image, box_image=False):
+    """Finds best rank and suit matches for card image."""
+    if box_image:
+        descriptors_map = BOX_CARD_DESCRIPTORS_MAP
+    else:
+        descriptors_map = CARD_DESCRIPTORS_MAP
 
-#     rect = cv2.minAreaRect(contour)
-#     # box_points = cv2.boxPoints(rect)
-#     (x, y), (w, h), _ = rect
-
-#     qCard.width, qCard.height = w, h
-#     qCard.center = [int(x), int(y)]
-
-#     qCard.image = cv2.cvtColor(extract_card_from_image(image, rect), cv2.COLOR_BGR2GRAY)
-
-#     return qCard
-
-
-def identify_card(card_image):
-    """Finds best rank and suit matches for the query card."""
-
-    orb = cv2.ORB_create(fastThreshold=0, edgeThreshold=0)
-    bf = cv2.BFMatcher_create(cv2.NORM_HAMMING,crossCheck=True)
-    _, descriptors1 = orb.detectAndCompute(card_image, None)
+    ORB = cv2.ORB_create(fastThreshold=0, edgeThreshold=0)
+    BF = cv2.BFMatcher_create(cv2.NORM_HAMMING, crossCheck=True)
+    _, descriptors1 = ORB.detectAndCompute(card_image, None)
 
     best_num_matches = 0
-    for name, descriptors2 in CARD_DESCRIPTORS_MAP.items():
-        matches = bf.match(descriptors1, descriptors2)
+    best_name = None
 
-        if len(matches) > best_num_matches:
-            best_num_matches = len(matches)
-            best_name = name
+    for name, descriptors2 in descriptors_map.items():
+            matches = BF.match(descriptors1, descriptors2)
 
-    best_rank, best_suit = best_name.split("_of_")
+            if len(matches) > best_num_matches:
+                best_num_matches = len(matches)
+                best_name = name
 
-    if best_num_matches < 50:
-        return None, None
-    return best_rank, best_suit
+    if best_name is not None:
+        best_rank, best_suit = best_name.split("_of_")
+        is_back, num_matches = is_back_of_card(card_image)
+        if is_back and num_matches > best_num_matches:
+            return "Back", "Card"
+
+        return best_rank, best_suit
+    return None, None
 
 
 def is_back_of_card(card_image):
@@ -158,9 +193,12 @@ def is_back_of_card(card_image):
     BF = cv2.BFMatcher_create(cv2.NORM_HAMMING,crossCheck=True)
 
     _, descriptors1 = ORB.detectAndCompute(card_image, None)
+    ref_image = cv2.imread(f"{pkgdir('detectors')}/card_images/Back_of_Card.jpg")
+    _, descriptors2 = ORB.detectAndCompute(ref_image, None)
 
-    matches = BF.match(descriptors1, BACK_OF_CARD_DESCRIPTORS)
-    return len(matches) >= 140
+    # matches = BF.match(descriptors1, BACK_OF_CARD_DESCRIPTORS)
+    matches = BF.match(descriptors1, descriptors2)
+    return len(matches) >= 120, len(matches)
 
 
 def load_back_of_card_descriptors_from_json():
@@ -179,40 +217,49 @@ def load_card_descriptors_map_from_json():
     CARD_DESCRIPTORS_MAP = descriptors_dict
     json_file.close()
 
+def load_box_card_descriptors_map_from_json():
+    global BOX_CARD_DESCRIPTORS_MAP
+    json_file = open(f"{pkgdir('detectors')}/card_features/BoxCardDescriptors.json", "r")
+    descriptors_dict = json.load(json_file)
+    for key in descriptors_dict:
+        descriptors_dict[key] = np.array(descriptors_dict[key], dtype=object).astype('uint8')
+    BOX_CARD_DESCRIPTORS_MAP = descriptors_dict
+    json_file.close()
+
 
 # def load_cards():
 #     """Loads rank images from directory specified by filepath. Stores
 #     them in a list of Train_ranks objects."""
     
-#     ranks = ['Ace','Two','Three','Four','Five','Six','Seven','Eight',
-#              'Nine','Ten','Jack','Queen','King']
-#     suits = ['Spades','Diamonds',
-#              'Clubs','Hearts']
+#     # ranks = ['Ace','Two','Three','Four','Five','Six','Seven','Eight',
+#     #          'Nine','Ten','Jack','Queen','King']
+#     # suits = ['Spades','Diamonds',
+#     #          'Clubs','Hearts']
     
-
-
 #     orb = cv2.ORB_create(fastThreshold=0, edgeThreshold=0)
 
-#     name_to_descriptors = {}
+#     # name_to_descriptors = {}
 
 #     # train_cards = []
-#     for rank in ranks:
-#         for suit in suits:
+#     # for rank in ranks:
+#     #     for suit in suits:
 
 #     #         # card_names.append(rank + "_of_" + suit)
 #     #         train_cards.append(Train_ranks())
-#             name = rank + "_of_" + suit
+#             # name = rank + "_of_" + suit
 
-#             filename = rank + "_of_" + suit + '.jpg'
-#             img = cv2.imread("references/card_images/"+filename, cv2.IMREAD_GRAYSCALE)
-#             _, descriptors1 = orb.detectAndCompute(img, None)
-#             name_to_descriptors[name] = descriptors1.tolist()
+#             # filename = "box_" + rank + "_of_" + suit + '.jpg'
+#             # img = cv2.imread("references/card_images/"+filename, cv2.IMREAD_GRAYSCALE)
+#     card_image = cv2.imread(f"{pkgdir('detectors')}/card_images/Back_of_Card.jpg")
+#     _, descriptors1 = orb.detectAndCompute(card_image, None)
+#     # name_to_descriptors[name] = descriptors1.tolist()
 
-#     json_descriptors = json.dumps(name_to_descriptors)
-#     file = open("references/CardDescriptors.json", "w")
+#     # json_descriptors = json.dumps(name_to_descriptors)
+#     json_descriptors = json.dumps(descriptors1.tolist())
+#     file = open("references/BackOfCardDescriptors.json", "w")
 #     file.write(json_descriptors)
 
-#     # return train_cards
+# load_cards()
 
 
 def draw_results(image, rank, suit, coords):
@@ -222,10 +269,10 @@ def draw_results(image, rank, suit, coords):
     cv2.circle(image, (x,y),5,(255,0,0),-1)
 
     # Draw card name twice, so letters have black outline
-    cv2.putText(image, (rank + ' of'), (x-60,y-10), FONT, 1, (0,0,0), 3, cv2.LINE_AA)
-    cv2.putText(image, (rank + ' of'), (x-60,y-10), FONT, 1, (50,200,200), 2, cv2.LINE_AA)
+    cv2.putText(image, (rank + ' of'), (x-60,y-10), FONT, 1, (0,0,0), 2, cv2.LINE_AA)
+    cv2.putText(image, (rank + ' of'), (x-60,y-10), FONT, 1, (50,200,200), 1, cv2.LINE_AA)
 
-    cv2.putText(image, suit, (x-60,y+25), FONT, 1, (0,0,0), 3, cv2.LINE_AA)
-    cv2.putText(image, suit, (x-60,y+25), FONT, 1, (50,200,200), 2, cv2.LINE_AA)
+    cv2.putText(image, suit, (x-60,y+25), FONT, 1, (0,0,0), 2, cv2.LINE_AA)
+    cv2.putText(image, suit, (x-60,y+25), FONT, 1, (50,200,200), 1, cv2.LINE_AA)
 
     return image

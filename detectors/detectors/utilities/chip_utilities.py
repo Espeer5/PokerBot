@@ -5,7 +5,7 @@ from detectors.utilities.card_utilities import extract_card_from_image
 from ament_index_python.packages import get_package_share_directory as pkgdir
 
 
-CHIP_MIN_SIZE = 50
+CHIP_MIN_SIZE = 40
 CHIP_MAX_SIZE = 400
 CHIP_DESCRIPTORS_MAP = {}
 
@@ -26,10 +26,10 @@ def preprocess_image(image):
     """Returns a grayed, blurred, and adaptively thresholded camera image."""
     image = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
 
-    red_range = np.array([[110, 125], [60, 235], [90, 155]])
+    red_range = np.array([[110, 125], [60, 235], [55, 155]])
     white_range = np.array([[0, 30], [0, 50], [138, 197]])
     blue_range = np.array([[0, 20], [90, 255], [50, 150]])
-    black_range = np.array([[0, 30], [20, 155], [10, 95]])
+    black_range = np.array([[0, 30], [0, 130], [10, 95]])
 
     def threshold_and_process(image, color_range, erode=0, dilate=0):
         color = cv2.inRange(image, color_range[:,0], color_range[:,1])
@@ -43,8 +43,8 @@ def preprocess_image(image):
         return color
 
 
-    red = threshold_and_process(image, red_range, erode=3)
-    white = threshold_and_process(image, white_range, erode=3)
+    red = threshold_and_process(image, red_range, erode=5)
+    white = threshold_and_process(image, white_range, erode=4)
     blue = threshold_and_process(image, blue_range, erode=4)
     black = threshold_and_process(image, black_range, erode=3)
 
@@ -76,7 +76,7 @@ def find_chips(image, thresh_image, color):
                 ORB = cv2.ORB_create(fastThreshold=0)
                 BF = cv2.BFMatcher_create(cv2.NORM_HAMMING,crossCheck=True)
 
-                keypoints1, descriptors1 = ORB.detectAndCompute(chip_image, None)
+                _, descriptors1 = ORB.detectAndCompute(chip_image, None)
                 # keypoints2, descriptors2 = ORB.detectAndCompute(reference, None)
                 reference_descriptors = CHIP_DESCRIPTORS_MAP[color]
                 # keypoints2, CHIP_DESCRIPTORS = ORB.detectAndCompute(reference_image, None)

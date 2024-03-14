@@ -101,13 +101,13 @@ class ButtonDetectorNode(Detector):
                         xs.append(x)
                         ys.append(y)
 
-        if len(xs) > 0 and len(ys) > 0:
+        if len(xs) > 0.5 * len(self.prev_images) and len(ys) > 0.5 * len(self.prev_images):
             avg_x = np.average(xs)
             avg_y = np.average(ys)
             avg_point = np.array([avg_x, avg_y]).reshape(2, 1)
             last_point = np.array([xs[-1], ys[-1]]).reshape(2, 1)
-            if np.linalg.norm(avg_point - last_point) < 0.01:
-                point = f"{avg_x}, {avg_y}, {-0.02}"
+            if np.linalg.norm(avg_point - last_point) < 0.005:
+                point = f"{avg_x}, {avg_y}, {-0.03}"
                 response.message = point
 
         return response
