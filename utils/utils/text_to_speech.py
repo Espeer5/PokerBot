@@ -12,5 +12,3 @@ def text_to_speech(stuff):
     while mixer.music.get_busy():
         time.sleep(1)
 
-text_to_speech("hello world")
-
