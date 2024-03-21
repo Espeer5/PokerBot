@@ -8,6 +8,8 @@ from brain.game.Payout import Payout
 from brain.game.Player import Player
 from brain.game.constants import PLAYERS
 
+from utils.text_to_speech import text_to_speech
+
 
 class Game():
     """
@@ -23,6 +25,7 @@ class Game():
         # self.dealer_idx = 0
         # self.curr_state = 
         self.node.get_logger().info("Game initialized")
+        text_to_speech("starting game","start")
         
 
     def detect_active_players(self):
@@ -46,6 +49,12 @@ class Game():
         return player_set
 
     def run(self):
+        # showdown = Showdown(self.node, PLAYERS[:-1], [("Ace", "Spades"), ("Five", "Hearts"), ("Ten", "Hearts"), ("Ace", "Diamonds"), ("Ten", "Spades")])
+        # winning_player = showdown.run()
+        # self.node.get_logger().info(f"Player {winning_player.player_id} has won the round!")
+        # return
+
+
         while True:
             # Initialize dealing states
             dealer = Dealer(self.node, self.players)
@@ -68,7 +77,7 @@ class Game():
                     break
 
                 if is_showdown:
-                    showdown = Showdown(self.node, PLAYERS[:-1], self.ccards)
+                    showdown = Showdown(self.node, self.players[:-1], self.ccards)
                     winning_player = showdown.run()
                     self.node.get_logger().info(f"Player {winning_player.player_id} has won the round!")
 

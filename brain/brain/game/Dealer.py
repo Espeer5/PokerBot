@@ -3,7 +3,7 @@ from enum import Enum
 import rclpy
 from detectors.message_types.Card import Card
 from detectors.message_types.CardPose import CardPose
-from brain.game.constants import DECK_LOCATION, get_card_locations_from_card_box
+from brain.game.constants import DECK_LOCATION, CARD_LOC, get_card_locations_from_card_box
 
 
 class Dealer():
@@ -17,10 +17,10 @@ class Dealer():
         card_locations = set(card_locations)
 
         extra = []
-        missing = []
+        # missing = []
 
         iters = 0
-        while len(extra) > 0 or len(missing) > 0 or iters == 0:
+        while len(extra) > 0 or iters == 0:
             iters += 1
 
             message = None
@@ -30,14 +30,14 @@ class Dealer():
             back_of_cards = set(message.poses) if type(message) != str else set()
             
             extra = list(back_of_cards - card_locations)
-            missing = list(card_locations - back_of_cards)
+            # missing = list(card_locations - back_of_cards)
 
             ID = None
-            for pose in missing:
-                self.node.act_at(DECK_LOCATION, np.pi/2, "GB_CARD")
-                self.node.get_logger().info(f"{pose.coords}")
-                wait = pose == missing[-1]
-                ID = self.node.act_at(np.array(pose.coords).reshape(3, 1), pose.theta, "DROP", wait=wait)
+            # for pose in missing:
+            #     self.node.act_at(DECK_LOCATION, np.pi/2, "GB_CARD")
+            #     self.node.get_logger().info(f"{pose.coords}")
+            #     wait = pose == missing[-1]
+            #     ID = self.node.act_at(np.array(pose.coords).reshape(3, 1), pose.theta, "DROP", wait=wait)
 
             for pose in extra:
                 self.node.get_logger().info(f"{pose.coords}")
@@ -54,10 +54,12 @@ class Dealer():
 
         assert len(self.players) > 0
         for i in range(len(self.players)):
-            raised = self.players[i].player_id == "robot"
-            curr_player = self.players[(self.dealer_index + i) % len(self.players)]
+            if self.players[i].player_id == "robot":
+                coords1, coords2, theta = get_card_locations_from_card_box(self.players[i].card_box, True)
+            else:
+                curr_player = self.players[(self.dealer_index + i) % len(self.players)]
             
-            coords1, coords2, theta = get_card_locations_from_card_box(curr_player.card_box, raised)
+                coords1, coords2, theta = CARD_LOC[curr_player.player_id]
 
 
             card_locations.append(CardPose(coords1, theta))

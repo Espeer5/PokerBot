@@ -80,8 +80,7 @@ class BackCardDetectorNode(Detector):
                 if card_image is not None:
                     card_image = cv2.cvtColor(card_image, cv2.COLOR_BGR2GRAY)
 
-                    is_back, _ = is_back_of_card(card_image)
-                    if is_back:
+                    if is_back_of_card(card_image):
                         (x, y), (w, h), alpha = cv2.minAreaRect(contour)
 
                         if h/w < 1:

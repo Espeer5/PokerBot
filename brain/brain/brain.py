@@ -223,7 +223,7 @@ def main(args=None):
     #         while node.prev_complete != wait_ID:
     #             rclpy.spin_once(node)
     # while True:
-    #     node.get_bot_foc()
+    #     node.get_bc()
         # node.get_ch()
                 
 

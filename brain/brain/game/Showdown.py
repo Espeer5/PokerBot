@@ -13,10 +13,25 @@ class Showdown():
         self.players = players
         self.community_cards = community_cards
 
-    def in_players_card_box(self, player, card_location):
-        x, y = card_location
-        (x0, y0), (x1, y1) = player.card_box
-        return x0 <= x <= x1 and y0 <= y <= y1
+    def closest_player(self, card_location):
+        card_location = np.array(card_location).reshape(2, 1)
+
+        closest_distance = np.inf
+        for player in self.players:
+            (x0, y0), (x1, y1) = player.card_box
+            point1 = np.array([x0, y0]).reshape(2, 1)
+            point2 = np.array([x1, y1]).reshape(2, 1)
+
+            curr_distance = min(np.linalg.norm(point1 - card_location),
+                                np.linalg.norm(point2 - card_location))
+            
+            if curr_distance < closest_distance:
+                closest_distance = curr_distance
+                closest_player = player
+
+        if closest_distance > 0.08:
+            return None
+        return closest_player
     
     def translate_to_pokereval_format(self, rank, suit):
         rank = rank.lower()
@@ -25,25 +40,24 @@ class Showdown():
         face_card_to_number = {"ace": 14, "king": 13, "queen": 12, "jack": 11,
                                "ten": 10, "nine": 9, "eight": 8, "seven": 7,
                                "six": 6, "five": 5, "four": 4, "three": 3, "two": 2}
-        if rank != "back":
-            rank = face_card_to_number[rank]
+        rank = face_card_to_number[rank]
 
         suit_to_number = {"spades": 1, "hearts": 2, "diamonds": 3, "clubs": 4}
-        if suit != "card":
-            suit = suit_to_number[suit]
+        suit = suit_to_number[suit]
 
         return Card(rank, suit)
     
     def each_player_has_two_cards(self, players_to_cards):
         # self.node.get_logger().info(f"{players_to_cards}")
-        if len(players_to_cards.keys()) != len(self.players):
-            self.node.get_logger().info(f"Not everyone has turned over their cards")
-            return False
         
         for player, cards in players_to_cards.items():
             if len(cards) != 2:
                 self.node.get_logger().info(f"Player {player.player_id} only has {len(cards)} cards")
                 return False
+            
+        if len(players_to_cards.keys()) != len(self.players):
+            self.node.get_logger().info(f"Not everyone has turned over their cards")
+            return False
         
         return True
 
@@ -51,23 +65,28 @@ class Showdown():
         players_to_cards = {}
 
         robot_cards_msg = self.node.get_bot_foc()
-        while "back" in [card.rank for card in robot_cards_msg.cards]:
+        while robot_cards_msg is None or type(robot_cards_msg) is str or "Back" in [card.rank for card in robot_cards_msg.cards]:
             robot_cards_msg = self.node.get_bot_foc()
     
         players_to_cards[PLAYERS[-1]] = []
+        self.node.get_logger().info("robot's cards")
         for card in robot_cards_msg.cards:
+            self.node.get_logger().info(f"{card.rank}, {card.suit}")
             players_to_cards[PLAYERS[-1]].append(self.translate_to_pokereval_format(card.rank, card.suit))
 
+        self.node.get_logger().info("players' cards")
         while not self.each_player_has_two_cards(players_to_cards):
             players_to_cards = {}
             card_msg = self.node.get_foc()
             if card_msg is not None:
                 for card in card_msg.cards:
-                    for player in self.players:
+                    if card.rank != "Back" and card.suit != "Card":
                         x, y, _ = card.pose.coords
-                        if self.in_players_card_box(player, (x, y)):
+                        player = self.closest_player((x, y))
+                        if player is not None:
                             if player not in players_to_cards:
                                 players_to_cards[player] = []
+                            self.node.get_logger().info(f"{card.rank}, {card.suit}")
                             players_to_cards[player].append(self.translate_to_pokereval_format(card.rank, card.suit))
             
 

@@ -28,7 +28,7 @@ class Detector(Node):
         self.bridge = cv_bridge.CvBridge()
         
         # Create a field which stores the previous image for processing on demand
-        self.prev_images = deque([], maxlen=5)
+        self.prev_images = deque([], maxlen=7)
         self.bot_prev_images = deque([], maxlen=1)
 
         # Subscribe to the incoming image from the usb cam
@@ -52,7 +52,7 @@ class Detector(Node):
         assert(msg.encoding == "rgb8")
         
         self.prev_images.append(msg)
-        assert len(self.prev_images) <= 5
+        assert len(self.prev_images) <= 7
 
     def process_box_cam(self, msg):
         """

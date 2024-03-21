@@ -144,9 +144,11 @@ def pixel_to_world_2(image, u, v):
         x_offs = -0.01
         y_offs = 0.005
     elif mag_xy < 0 and xyObj[1] > 0.3:
-        x_offs = -0.019
-    if mag_xy < 0:
         y_offs = -0.007
+        if xyObj[1] > 0.3:  
+            x_offs = -0.019
+        else:
+            x_offs = -0.005
     xyObj = xyObj + np.float32([x_offs, y_offs])
     assert xyObj is not None
 

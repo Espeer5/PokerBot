@@ -8,6 +8,7 @@ from brain.game.constants import find_card
 from detectors.message_types.CardPose import CardPose
 from brain.game.constants import (DECK_LOCATION, FLOP_LOCATIONS, TURN_LOCATION,
                                   RIVER_LOCATION, FLIP_LOC)
+from utils.text_to_speech import text_to_speech
 
 class State(Enum):
         FLOP = 1
@@ -70,6 +71,8 @@ class CommunityCardsDealer():
                 self.node.act_at(self.grab_loc, np.pi / 2, "GB_CARD")
                 wait_ID = self.node.act_at(FLIP_LOC, 0.0, "FLIP")
                 while self.node.prev_complete != wait_ID:
+                    sleep(.5)
+                    text_to_speech("searching", "searching")
                     rclpy.spin_once(self.node)
 
                 loc, theta, (rank, suit) = find_card(self.node)
@@ -97,6 +100,8 @@ class CommunityCardsDealer():
             self.node.act_at(loc, theta, "GB_CARD")
             wait_ID = self.node.act_at(TURN_LOCATION, 0.0, "DROP", wait=True)
             while self.node.prev_complete != wait_ID:
+                sleep(.5)
+                text_to_speech("searching", "searching")
                 rclpy.spin_once(self.node)
             self.curr_state = State.RIVER
             card_info = [(rank, suit)]
@@ -108,6 +113,8 @@ class CommunityCardsDealer():
             self.node.act_at(self.grab_loc, np.pi / 2, "GB_CARD")
             wait_ID = self.node.act_at(FLIP_LOC, 0.0, "FLIP")
             while self.node.prev_complete != wait_ID:
+                sleep(.5)
+                text_to_speech("searching", "searching")
                 rclpy.spin_once(self.node)
 
             loc, theta, (rank, suit) = find_card(self.node)

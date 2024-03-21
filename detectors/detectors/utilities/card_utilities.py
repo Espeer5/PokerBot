@@ -180,8 +180,7 @@ def identify_card(card_image, box_image=False):
 
     if best_name is not None:
         best_rank, best_suit = best_name.split("_of_")
-        is_back, num_matches = is_back_of_card(card_image)
-        if is_back and num_matches > best_num_matches:
+        if is_back_of_card(card_image):
             return "Back", "Card"
 
         return best_rank, best_suit
@@ -193,12 +192,17 @@ def is_back_of_card(card_image):
     BF = cv2.BFMatcher_create(cv2.NORM_HAMMING,crossCheck=True)
 
     _, descriptors1 = ORB.detectAndCompute(card_image, None)
-    ref_image = cv2.imread(f"{pkgdir('detectors')}/card_images/Back_of_Card.jpg")
-    _, descriptors2 = ORB.detectAndCompute(ref_image, None)
+    # ref_image = cv2.imread(f"{pkgdir('detectors')}/card_images/Back_of_Card.jpg")
+    # _, descriptors2 = ORB.detectAndCompute(ref_image, None)
 
-    # matches = BF.match(descriptors1, BACK_OF_CARD_DESCRIPTORS)
-    matches = BF.match(descriptors1, descriptors2)
-    return len(matches) >= 120, len(matches)
+    # cv2.imshow("card_image", card_image)
+    # cv2.waitKey(0)
+    # cv2.imwrite(f"{pkgdir('detectors')}/card_images/Back_of_Card.jpg", card_image)
+
+    matches = BF.match(descriptors1, BACK_OF_CARD_DESCRIPTORS)
+    # matches = BF.match(descriptors1, descriptors2)
+    # print(len(matches))
+    return len(matches) >= 180
 
 
 def load_back_of_card_descriptors_from_json():

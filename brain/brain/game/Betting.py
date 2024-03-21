@@ -8,6 +8,7 @@ from brain.game.psolve.model.representation.hand import Hand
 from brain.game.psolve.model.representation.card_set import CardSet, Card
 from detectors.message_types.Chip import Chip
 
+from utils.text_to_speech import text_to_speech
 
 class Betting():
     LEFT_POT_LOCATION = [(-0.40, 0.34), (-0.08, 0.58)]
@@ -21,6 +22,7 @@ class Betting():
 
     def __init__(self, node, active_players, chips_in_pot, round_number, ccards):
         node.get_logger().info("Betting initialized")
+        # text_to_speech("starting game","start")
         self.node = node
         self.is_first_round = round_number == 1
         self.players = active_players
@@ -157,9 +159,11 @@ class Betting():
                     if messy:
                         messy_chips.append(chip)
 
-            self.node.get_logger().info(f"messy_chips={[chip.coords for chip in messy_chips]}")
+            # self.node.get_logger().info(f"messy_chips={[chip.coords for chip in messy_chips]}")
             wait_ID = None
             tidy_locations = []
+            if len(messy_chips) > 0:
+                text_to_speech(f"Let me clean that up", "clean")
             for chip in messy_chips:
                 x, y, z = chip.coords
                 if x < 0:
@@ -180,7 +184,7 @@ class Betting():
 
     def choose_bet(self, min_bet):
         """
-        Decide how much to bet
+        Decide how much to bet for the robot
         """
         hole_ranks = [card.rank.lower() for card in self.p_cards.cards]
         self.node.get_logger().info(f"{hole_ranks}")
@@ -192,10 +196,14 @@ class Betting():
         agent = Agent(Hand(hole_cards, comm_cards), 10)
         act = agent.make_decision()
         if act == 'call':
+            text_to_speech("I call","call")
             return min_bet
         if act == 'fold':
+            text_to_speech("I fold","fold")
             return -1
-        return min_bet + random.randint(1, 3)
+        bt_add = random.randint(1, 3)
+        text_to_speech(f"I raise you {bt_add}",f"call_{bt_add}")
+        return min_bet + bt_add
 
     @staticmethod
     def chips_from_bet(bet_amnt):
@@ -263,6 +271,7 @@ class Betting():
         first_bettor = curr_bettor
         new_button = None
         self.node.get_logger().info(f"player {curr_bettor.player_id} is betting...")
+        text_to_speech(f"player {curr_bettor.player_id} can start betting",f"start_bet_{curr_bettor.player_id}")
         curr_index = self.players.index(curr_bettor)
 
         curr_pot_size = self.chips_in_pot
@@ -273,7 +282,7 @@ class Betting():
         while not self.is_betting_over(player_bet_amounts, num_bets):
 
             if curr_bettor.player_id == "robot":
-                bet_amount = self.choose_bet(curr_min_bet)
+                bet_amount = self.choose_bet(curr_min_bet - player_bet_amounts[curr_bettor])
                 chips_map = self.chips_from_bet(bet_amount)
                 self.make_robot_bets(curr_pot_size, chips_map)
 
@@ -289,6 +298,7 @@ class Betting():
 
             new_button, new_bettor = self.detect_curr_bettor()
             if curr_bettor != new_bettor:
+                text_to_speech("Please wait", "wait")
                 self.node.get_logger().info(f"player {new_bettor.player_id} is betting...")
 
                 self.tidy_pot()
@@ -320,19 +330,25 @@ class Betting():
                     curr_button = new_button
                     curr_index = self.players.index(curr_bettor)
                     num_bets += 1
+                    if not self.is_betting_over(player_bet_amounts, num_bets):
+                        text_to_speech(f"player {curr_bettor.player_id} can start betting",f"start_bet_{curr_bettor.player_id}")
+                    else:
+                        text_to_speech("Betting is over", "bet_over")
                 else:
                     if not new_bettor_is_next:
+                        text_to_speech("you are not next", "wrong_play")
                         correct_next = self.players[(curr_index + 1) % len(self.players)].player_id
                         self.node.get_logger().info(f"{new_bettor.player_id} is not next! {correct_next} is next!")
 
                         button_loc = self.PLAYER_TO_BUTTON_LOCATION[correct_next]
                         self.node.act_at(np.array(new_button).reshape(3, 1), 0, "GB_CHIP")
-                        wait_ID = self.node.act_at(np.array(correct_next).reshape(3, 1), 0, "DROP", wait=True)
+                        wait_ID = self.node.act_at(np.array(button_loc).reshape(3, 1), 0, "DROP", wait=True)
 
                         while self.node.prev_complete != wait_ID:
                             rclpy.spin_once(self.node)
 
                     if not bet_is_large_enough:
+                        text_to_speech(f"you did not bet enough, minimum is {curr_min_bet - player_bet_amounts[curr_bettor]}",f"rebet_{curr_min_bet - player_bet_amounts[curr_bettor]}")
                         self.node.get_logger().info(f"{new_bet} is smaller than minimum bet size {curr_min_bet}")
     
                         self.node.act_at(np.array(new_button).reshape(3, 1), 0, "GB_CHIP")
